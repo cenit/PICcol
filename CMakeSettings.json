@@ -1,29 +1,43 @@
 {
-  // See https://go.microsoft.com//fwlink//?linkid=834763 for more information about this file.
   "configurations": [
     {
-      "buildCommandArgs": "-m -v:minimal",
       "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-      "configurationType": "Debug",
-      "generator": "Visual Studio 15 2017",
-      "name": "x86-Debug",
+      "generator": "Ninja",
+      "configurationType": "Release",
+      "inheritEnvironments": [ "msvc_x64" ],
+      "name": "x64-Ninja-Release",
       "variables": [
         {
-          "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "${env.WORKSPACE}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+          "name": "CMAKE_BUILD_TYPE",
+          "value": "Release"
         }
       ]
     },
     {
       "buildCommandArgs": "-m -v:minimal",
       "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-      "configurationType": "Release",
+      "cmakeCommandArgs": "-A x64",
+      "configurationType": "Debug",
       "generator": "Visual Studio 15 2017",
-      "name": "x86-Release",
+      "name": "x64-Debug",
       "variables": [
         {
-          "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "${env.WORKSPACE}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+          "name": "CMAKE_BUILD_TYPE",
+          "value": "Debug"
+        }
+      ]
+    },
+    {
+      "buildCommandArgs": "-m -v:minimal",
+      "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
+      "cmakeCommandArgs": "-A x64",
+      "configurationType": "Release",
+      "generator": "Visual Studio 15 2017",
+      "name": "x64-Release",
+      "variables": [
+        {
+          "name": "CMAKE_BUILD_TYPE",
+          "value": "Release"
         }
       ]
     }

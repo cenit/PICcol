@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright 2010      Stefano Sinigardi                                        *
+* Copyright 2010-2018 Stefano Sinigardi                                        *
 * The program is distributed under the terms of the GNU General Public License *
 *******************************************************************************/
 

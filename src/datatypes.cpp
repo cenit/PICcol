@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright 2010      Stefano Sinigardi                                        *
+* Copyright 2010-2018 Stefano Sinigardi                                        *
 * The program is distributed under the terms of the GNU General Public License *
 *******************************************************************************/
 
@@ -20,20 +20,15 @@
     along with PICcol.  If not, see <http://www.gnu.org/licenses/>.
 **************************************************************************/
 
-
-
-#define DEBUG
-
-#include <iostream>
-#include <cstdio>
-#include <cmath>
-#include <ctime>
-#include <cstdlib>
-#include <fstream>
-#include <limits> // for declaration of 'numeric_limits'
-#include <ios>    // for declaration of 'streamsize'
-
 #include "datatypes.h"
+#include "jsoncons/json.hpp"
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <ios>
+#include <iostream>
+#include <limits>
 
 using namespace std;
 
@@ -69,207 +64,102 @@ Data::Data()
 
 Data::~Data() { }
 
-
-int Data::fillParametersFromFile(char* nomefile, ofstream &outputLOG)
-{
+int Data::fillParametersFromFile(char *nomefile, ofstream &outputLOG) {
   ifstream inputstreamParameters;
+  jsoncons::json parameters;
   inputstreamParameters.open(nomefile);
-  if (inputstreamParameters.is_open())
-  {
+  if (inputstreamParameters.is_open()) {
     outputLOG << "Lettura parametri da " << nomefile << " in corso..." << endl;
-    double genericdouble, anothergenericdouble;
-    int genericInt;
-    inputstreamParameters >> genericInt;
-    setNelectrons_UNSECURED(genericInt);
-    outputLOG << "Numero particelle da simulare: " << getNelectrons() << endl;
-    inputstreamParameters >> genericInt;
-    setNdim_UNSECURED(genericInt);
-    outputLOG << "Sistema " << getNdim() << "D" << endl;
-
-    inputstreamParameters >> genericdouble;
-    setThermalV_UNSECURED(genericdouble);
-    outputLOG << "Velocita' termica: " << getThermalV() << endl;
-
-    inputstreamParameters >> genericdouble;
-    inputstreamParameters >> anothergenericdouble;
-    setXaxis_UNSECURED(genericdouble, anothergenericdouble);
-
-    outputLOG << "Parametri asse x: dimX: " << getDimX() << ", dx: " << getDeltaX() << endl;
-
-    if (getNdim() == 2 || getNdim() == 3)
-    {
-      inputstreamParameters >> genericdouble;
-      inputstreamParameters >> anothergenericdouble;
-      setYaxis_UNSECURED(genericdouble, anothergenericdouble);
-      outputLOG << "Parametri asse y: dimY: " << getDimY() << ", dy: " << getDeltaY() << endl;
-    }
-
-    if (getNdim() == 3)
-    {
-      inputstreamParameters >> genericdouble;
-      inputstreamParameters >> anothergenericdouble;
-      setZaxis_UNSECURED(genericdouble, anothergenericdouble);
-      outputLOG << "Parametri asse z: dimZ: " << getDimZ() << ", dz: " << getDeltaZ() << endl;
-    }
-
-    inputstreamParameters >> genericdouble;
-    impostaT_UNSECURED(genericdouble);
-    outputLOG << "t iniziale: " << getT() << endl;
-
-    inputstreamParameters >> genericdouble;
-    setDeltaT_UNSECURED(genericdouble);
-    outputLOG << "dt: " << getDeltaT() << endl;
-
-    inputstreamParameters >> genericInt;
-    setNsteps_UNSECURED(genericInt);
-    outputLOG << "nSteps: " << getNsteps() << endl;
-
-    inputstreamParameters >> genericInt;
-    setParticleFillingMethod_UNSECURED(genericInt);
-    if (getParticleFillingMethod() == 1)
-      outputLOG << "Generazione random particelle" << endl;
-    else if (getParticleFillingMethod() == 2)
-      outputLOG << "Particelle generate in 0,0,0" << endl;
-
-    inputstreamParameters >> genericInt;
-    setEvoType_UNSECURED(genericInt);
-    if (getEvoType() == 1)
-    {
-      outputLOG << "Distribuzione campi su particelle in un istante definito" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-      //      inputstreamParameters >> genericInt;
-      //      setAnalyticType_UNSECURED(genericInt);
-      //      if (getAnalyticType() == 1) outputLOG << "Distribuzione campi su particelle in un istante definito" << endl;
-      //      else if (getAnalyticType() == 2) outputLOG << "Evoluzione campo su una particella nel tempo" << endl;
-      //      else if (getAnalyticType() == 3) outputLOG << "Evoluzione particelle metodo RK4 con calcolo campo analitico sulla particella" << endl;
-      //      else outputLOG << "Metodo non riconosciuto" << endl;
-    }
-    else if (getEvoType() == 2)
-    {
-      outputLOG << "Evoluzione campo su una particella nel tempo" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 3)
-    {
-      outputLOG << "Evoluzione RungeKutta4 no griglia (campo analitico calcolato sulla particella)" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 4)
-    {
-      outputLOG << "Evoluzione RungeKutta4 griglia on-the-fly" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 5)
-    {
-      outputLOG << "Evoluzione RungeKutta4 griglia persistente" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 6)
-    {
-      outputLOG << "Evoluzione Leapfrog2 no griglia" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 7)
-    {
-      outputLOG << "Evoluzione Leapfrog2 griglia on-the-fly" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 8)
-    {
-      outputLOG << "Evoluzione Leapfrog2 griglia persistente" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 9)
-    {
-      outputLOG << "Evoluzione Leapfrog4 no griglia" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 10)
-    {
-      outputLOG << "Evoluzione Leapfrog4 griglia on-the-fly" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 11)
-    {
-      outputLOG << "Evoluzione Leapfrog4 griglia persistente" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else if (getEvoType() == 12)
-    {
-      outputLOG << "Evoluzione Leapfrog4 no griglia - algoritmo TURCHETTI" << endl;
-      inputstreamParameters >> genericdouble;
-      setA_UNSECURED(genericdouble);
-      inputstreamParameters >> genericdouble;
-      setK_UNSECURED(genericdouble);
-      outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-      outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
-    }
-    else outputLOG << "Evoluzione non riconosciuta" << endl;
-
     inputstreamParameters.close();
-    outputLOG << "Lettura parametri completata!" << endl;
-    return 1;
+    try {
+      parameters = jsoncons::json::parse_file(nomefile);
+    } catch (std::exception &e) {
+      outputLOG << e.what() << std::endl;
+      exit(-1);
+    }
   }
+
+  jsoncons::json empty_json;
+  jsoncons::json json_lattice_elements = parameters.has_member("Magnetic_elements") ? parameters["Magnetic_elements"] : empty_json;
+
+  setNelectrons_UNSECURED(parameters.has_member("Nelectrons") ? parameters["Nelectrons"].as<int>() : 0);
+  outputLOG << "Numero particelle da simulare: " << getNelectrons() << endl;
+
+  setNdim_UNSECURED(parameters.has_member("Ndim") ? parameters["Ndim"].as<int>() : 0);
+  outputLOG << "Sistema " << getNdim() << "D" << endl;
+
+  setThermalV_UNSECURED(parameters.has_member("ThermalV") ? parameters["ThermalV"].as<double>() : 0.0);
+  outputLOG << "Velocita' termica: " << getThermalV() << endl;
+
+  double DimX = parameters.has_member("DimX") ? parameters["DimX"].as<double>() : 0.0;
+  double dx = parameters.has_member("dx") ? parameters["dx"].as<double>() : 0.0;
+  setXaxis_UNSECURED(DimX, dx);
+  outputLOG << "Parametri asse x: dimX: " << getDimX() << ", dx: " << getDeltaX() << endl;
+
+  double DimY = parameters.has_member("DimY") ? parameters["DimY"].as<double>() : 0.0;
+  double dy = parameters.has_member("dy") ? parameters["dy"].as<double>() : 0.0;
+  setXaxis_UNSECURED(DimY, dy);
+  outputLOG << "Parametri asse y: dimY: " << getDimY() << ", dy: " << getDeltaY() << endl;
+
+  double DimZ = parameters.has_member("DimZ") ? parameters["DimZ"].as<double>() : 0.0;
+  double dz = parameters.has_member("dz") ? parameters["dz"].as<double>() : 0.0;
+  setXaxis_UNSECURED(DimZ, dz);
+  outputLOG << "Parametri asse z: dimZ: " << getDimZ() << ", dz: " << getDeltaZ() << endl;
+
+  setInitialT_UNSECURED(parameters.has_member("InitialT") ? parameters["InitialT"].as<double>() : 0.0);
+  outputLOG << "t iniziale: " << getT() << endl;
+
+  setDeltaT_UNSECURED(parameters.has_member("dt") ? parameters["dt"].as<double>() : 0.0);
+  outputLOG << "dt: " << getDeltaT() << endl;
+
+  setNsteps_UNSECURED(parameters.has_member("nSteps") ? parameters["nSteps"].as<int>() : 0);
+  outputLOG << "nSteps: " << getNsteps() << endl;
+
+  setParticleFillingMethod_UNSECURED(parameters.has_member("ParticleFillingMethod") ? parameters["ParticleFillingMethod"].as<int>() : 0);
+  if (getParticleFillingMethod() == 1)
+    outputLOG << "Generazione random particelle" << endl;
+  else if (getParticleFillingMethod() == 2)
+    outputLOG << "Particelle generate in 0,0,0" << endl;
   else
-  {
-    outputLOG << "Errore, impossibile leggere dal file " << nomefile << endl;
-    return -254;
+    outputLOG << "Metodo non valido" << endl;
+
+  setEvoType_UNSECURED(parameters.has_member("EvoType") ? parameters["EvoType"].as<int>() : 0);
+  switch (getEvoType()) {
+  case 1:
+    outputLOG << "Distribuzione campi su particelle in un istante definito" << endl;
+  case 2:
+    outputLOG << "Evoluzione campo su una particella nel tempo" << endl;
+  case 3:
+    outputLOG << "Evoluzione RungeKutta4 no griglia (campo analitico calcolato sulla particella)" << endl;
+  case 4:
+    outputLOG << "Evoluzione RungeKutta4 griglia on-the-fly" << endl;
+  case 5:
+    outputLOG << "Evoluzione RungeKutta4 griglia persistente" << endl;
+  case 6:
+    outputLOG << "Evoluzione Leapfrog2 no griglia" << endl;
+  case 7:
+    outputLOG << "Evoluzione Leapfrog2 griglia on-the-fly" << endl;
+  case 8:
+    outputLOG << "Evoluzione Leapfrog2 griglia persistente" << endl;
+  case 9:
+    outputLOG << "Evoluzione Leapfrog4 no griglia" << endl;
+  case 10:
+    outputLOG << "Evoluzione Leapfrog4 griglia on-the-fly" << endl;
+  case 11:
+    outputLOG << "Evoluzione Leapfrog4 griglia persistente" << endl;
+  case 12:
+    outputLOG << "Evoluzione Leapfrog4 no griglia - algoritmo TURCHETTI" << endl;
+  default:
+    outputLOG << "Evoluzione non riconosciuta" << endl;
+    break;
   }
+
+  setA_UNSECURED(parameters.has_member("A") ? parameters["A"].as<double>() : 0.0);
+  setK_UNSECURED(parameters.has_member("K") ? parameters["K"].as<double>() : 0.0);
+  outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
+  outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
+  outputLOG << "Lettura parametri completata!" << endl;
+  return 0;
 }
 
 
@@ -870,8 +760,7 @@ void Data::impostaT(double tempo)
   t = tempo;
 }
 
-
-void Data::impostaT_UNSECURED(double tempo)
+void Data::setInitialT_UNSECURED(double tempo)
 {
   t = tempo;
 }

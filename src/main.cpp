@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright 2010      Stefano Sinigardi                                        *
+* Copyright 2010-2018 Stefano Sinigardi                                        *
 * The program is distributed under the terms of the GNU General Public License *
 *******************************************************************************/
 
@@ -22,9 +22,6 @@
 
 
 
-
-#define DEBUG
-
 #include <iostream>
 #include <iomanip>
 #include <cstdio>
@@ -33,12 +30,12 @@
 #include <cstdlib>
 #include <fstream>
 #include <vector>
-#include <limits> // for declaration of 'numeric_limits'
-#include <ios>    // for declaration of 'streamsize'
+#include <limits>
+#include <ios>
 
 #include "datatypes.h"      // include il file con la definizione dei tipi degli oggetti: Particle, Field, Data
 #include "evolution.h"      // include i metodi di evoluzione del sistema
-#include "filler.h"       // include i metodi di riempimento dei vettori di particelle e dei campi, iniziali e durante l'elaborazione
+#include "filler.h"         // include i metodi di riempimento dei vettori di particelle e dei campi, iniziali e durante l'elaborazione
 
 using namespace std;
 
@@ -54,9 +51,9 @@ int main(int argc, char*argv[])
 
   /************************************************************
   * INIZIALIZZAZIONE file di output                           *
-  * - outputLOG conterr� i parametri dell'esecuzione corrente *
-  *   ed apre in modalit� append il file log.txt              *
-  * - outputDATA conterr� invece tutti i dati delle           *
+  * - outputLOG conterra` i parametri dell'esecuzione corrente *
+  *   ed apre in modalita` append il file log.txt              *
+  * - outputDATA conterra` invece tutti i dati delle           *
   *   particelle istante per istante e va a sovrascrivere ad  *
   *   ogni esecuzione del programma il file output.dat        *
   ************************************************************/
@@ -74,7 +71,7 @@ int main(int argc, char*argv[])
   *   sapere la configurazione del sistema in esame           *
   * - un vettore di particelle che raggruppa le stesse        *
   * - un vettore di campi calcolati nelle posizioni delle     *
-    *   particelle                                              *
+  *   particelle                                              *
   * - un vettore di campi calcolati nei nodi della griglia    *
   *   definita dall'utente e sovrimposta al sistema (celle)   *
   ************************************************************/
@@ -95,8 +92,8 @@ int main(int argc, char*argv[])
   *   particelle da utilizzare durante i calcoli; se non      *
   *   legge anche i parametri deve naturalmente calcolarsi    *
   *   quelli ovvi e chidere quelli mancanti                   *
-    * - una combinazione dei precedenti (con controlli di       *
-  *   coerenza
+  * - una combinazione dei precedenti (con controlli di       *
+  *   coerenza                                                *
   ************************************************************/
   if (argc == 2)
   {
@@ -105,7 +102,7 @@ int main(int argc, char*argv[])
     {
       data.fillParametersFromFile(argv[1], outputLOG);
     }
-    else if (data.getInputType() == 2)      // data.getInputType == 2  --> 2: lettura particelle gi� generate (no campi)
+    else if (data.getInputType() == 2)      // data.getInputType == 2  --> 2: lettura particelle gia` generate (no campi)
     {
       fillParticlesFromFile(argv[2], outputLOG);
       return 3;
@@ -115,8 +112,8 @@ int main(int argc, char*argv[])
   else if (argc == 3)
   {
     data.setInputType(argv[1]);
-    data.fillParametersFromFile(argv[1], outputLOG);    // se vengono specificati due file, il primo � dei parametri
-    fillParticlesFromFile(argv[2], outputLOG);        // e il secondo delle coordinate delle particelle
+    data.fillParametersFromFile(argv[1], outputLOG);    // se vengono specificati due file, il primo e` dei parametri
+    fillParticlesFromFile(argv[2], outputLOG);          // e il secondo delle coordinate delle particelle
     return 4;
   }
   else if (argc > 3)
@@ -380,33 +377,33 @@ int main(int argc, char*argv[])
     else outputLOG << "Metodo non riconosciuto" << endl;
   }
 
-  /************************************************************
-  * Ora il programma dovrebbe aver saputo "tutto" dall'utente *
-  * e pertanto genera il vettore iniziale delle particelle    *
-  * seguendo i parametri impostati e solo nel caso non fosse  *
-  * stato gi� definito e letto un file contenente questi dati *
-  ************************************************************/
+  /*************************************************************
+  * Ora il programma dovrebbe aver saputo "tutto" dall'utente  *
+  * e pertanto genera il vettore iniziale delle particelle     *
+  * seguendo i parametri impostati e solo nel caso non fosse   *
+  * stato gia` definito e letto un file contenente questi dati *
+  *************************************************************/
   if (argc != 3) creaVettoreParticelle(data, particelle);
 
 
-  /************************************************************
-  * In base alle scelte che l'utente ha fatto, il programma:  *
-  * - calcola l'evoluzione con un metodo runge-kutta del      *
-  *   quarto ordine e un campo analitico predefinito          *
-  *   (modificabili solo i parametri) calcolato direttamente  *
-  *   nelle posizioni delle particelle                        *
-  * - calcola l'evoluzione con un metodo leapfrog e un campo  *
-  *   analitico predefinito (modificabili solo i parametri)   *
-  *   calcolato nei punti di griglia circostanti la           *
-  *   particella ed interpolato su di essa                    *
-  * - calcola l'evoluzione con un metodo leapfrog e un campo  *
-  *   predeterminato sui punti di griglia, che a sua volta si *
-  *   evolve secondo precise regole (ad ora, i punti di       *
-  *   griglia sono riempiti inizialmente con i valori del     *
-  *   solito campo analitico in quelle posizioni ed evoluti   *
-  *   ponendoli uguali al passo precedente, senza correnti!)  *
-  * - altri metodi ancora non descritti in questo commento    *
-  ************************************************************/
+  /*************************************************************
+  * In base alle scelte che l'utente ha fatto, il programma:   *
+  * - calcola l'evoluzione con un metodo runge-kutta del       *
+  *   quarto ordine e un campo analitico predefinito           *
+  *   (modificabili solo i parametri) calcolato direttamente   *
+  *   nelle posizioni delle particelle                         *
+  * - calcola l'evoluzione con un metodo leapfrog e un campo   *
+  *   analitico predefinito (modificabili solo i parametri)    *
+  *   calcolato nei punti di griglia circostanti la            *
+  *   particella ed interpolato su di essa                     *
+  * - calcola l'evoluzione con un metodo leapfrog e un campo   *
+  *   predeterminato sui punti di griglia, che a sua volta si  *
+  *   evolve secondo precise regole (ad ora, i punti di        *
+  *   griglia sono riempiti inizialmente con i valori del      *
+  *   solito campo analitico in quelle posizioni ed evoluti    *
+  *   ponendoli uguali al passo precedente, senza correnti!)   *
+  * - altri metodi ancora non descritti in questo commento     *
+  *************************************************************/
   if (data.getEvoType() == 1)  calcolaCampoInUnIstante(data, particelle, campiSuParticelle, outputDATA);
   else if (data.getEvoType() == 2)  calcolaEvoluzioneCampoSuParticelle(data, particelle, campiSuParticelle, outputDATA);
   else if (data.getEvoType() == 3)  evolveRK4_nogrid(data, particelle, campiSuParticelle, outputDATA);
@@ -422,13 +419,6 @@ int main(int argc, char*argv[])
 
   cout << "Esecuzione completata!" << endl;
 
-
-
-#ifdef DEBUG
-  cin.clear();
-  cin.ignore(numeric_limits<streamsize>::max(), '\n');
-  cin.get();
-#endif
 
   /*************************************************************
   * Chiusura dei file di log (log.txt) e dei dati (output.dat) *

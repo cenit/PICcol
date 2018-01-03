@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright 2010      Stefano Sinigardi                                        *
+* Copyright 2010-2018 Stefano Sinigardi                                        *
 * The program is distributed under the terms of the GNU General Public License *
 *******************************************************************************/
 
@@ -25,6 +25,7 @@
 #ifndef __DATATYPES_H
 #define __DATATYPES_H
 
+#include <fstream>
 
 class Data
 {
@@ -96,7 +97,7 @@ public:
   void aumentaT(double);
   void resettaT();
   void impostaT(double);
-  void impostaT_UNSECURED(double);
+  void setInitialT_UNSECURED(double);
   double getT();
 
   ~Data();

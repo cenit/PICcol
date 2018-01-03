@@ -1,5 +1,5 @@
-Copyright 2010 Stefano Sinigardi   
-The program is distributed under the terms of the GNU General Public License 
+Copyright 2010-2018 Stefano Sinigardi
+The program is distributed under the terms of the GNU General Public License
 
 ```
     This program is free software: you can redistribute it and/or modify
@@ -16,10 +16,9 @@ The program is distributed under the terms of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ```
 
-PICcol, my "small PIC" (italian pun) code.
-It was a work in progress, at the moment it has been abandoned (I'm working on something else).
+PICcol, a non-working PIC code.
+It is a teaching experiment, but almost abandoned anyway.
 
-It was my sandbox in which I learnt how to code in C/C++, but I am not really very skilled.....
 
-build status linux/macOS: [![Build Status](https://travis-ci.org/cenit/PICcol.svg?branch=master)](https://travis-ci.org/cenit/PICcol)   
+build status linux/macOS: [![Build Status](https://travis-ci.org/cenit/PICcol.svg?branch=master)](https://travis-ci.org/cenit/PICcol)
 build status cygwin/Windows: [![Build status](https://ci.appveyor.com/api/projects/status/pn2qadn52gy10e39?svg=true)](https://ci.appveyor.com/project/cenit/piccol)

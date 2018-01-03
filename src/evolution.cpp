@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright 2010      Stefano Sinigardi                                        *
+* Copyright 2010-2018 Stefano Sinigardi                                        *
 * The program is distributed under the terms of the GNU General Public License *
 *******************************************************************************/
 
@@ -62,8 +62,8 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
       fieldOnParticles.push_back(*campoSuPunto);
 
 
-      // 1� PASSO
-      //RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
+      // PASSO #1
+      // RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
       dx.setParticleX(particles[i].getParticlePX() / (gamma * particles[i].getParticleM()));
       dx.setParticleY(particles[i].getParticlePY() / (gamma * particles[i].getParticleM()));
       dx.setParticleZ(particles[i].getParticlePZ() / (gamma * particles[i].getParticleM()));
@@ -71,7 +71,7 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
       dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[0].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBz());
       dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[0].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBx());
 
-      //RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
+      // RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
       dx2 = dx;
 
       //RIEMPIE x2 con le posizioni avanzate di particles[i] dopo il primo passo
@@ -83,8 +83,8 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
       x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
 
 
-      // 2� PASSO
-      //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
+      // PASSO #2
+      // AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
 //      fieldOnParticles.clear();
       data.aumentaT(data.getDeltaT() * 0.5);
       calcolaCampoAnalitico1DSuParticella(data, x2, *campoSuPunto);
@@ -92,7 +92,7 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
 
       gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
 
-      //AGGIORNA dx con i nuovi valori
+      // AGGIORNA dx con i nuovi valori
       dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
       dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
       dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
@@ -101,7 +101,7 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
       dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[1].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBx());
 
 
-      //AGGIUNGE al dx2 i valori calcolati al secondo passo
+      // AGGIUNGE al dx2 i valori calcolati al secondo passo
       dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
       dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
       dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
@@ -109,7 +109,7 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
       dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
       dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
 
-      //RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo  // DA SISTEMARE!!!
+      // RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo  // DA SISTEMARE!!!
       x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));
       x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
       x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
@@ -119,9 +119,9 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
 
 
 
-      // 3� PASSO
-      //CALCOLA campi nella posizione x2 appena aggiornata
-//      fieldOnParticles.clear();
+      // PASSO #3
+      // CALCOLA campi nella posizione x2 appena aggiornata
+      //fieldOnParticles.clear();
       calcolaCampoAnalitico1DSuParticella(data, x2, *campoSuPunto);
       fieldOnParticles.push_back(*campoSuPunto);
 
@@ -153,9 +153,9 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
 
 
 
-      // 4� PASSO
+      // PASSO #4
       //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
-//      fieldOnParticles.clear();
+      //fieldOnParticles.clear();
       data.aumentaT(data.getDeltaT() * 0.5);
       calcolaCampoAnalitico1DSuParticella(data, x2, *campoSuPunto);
       fieldOnParticles.push_back(*campoSuPunto);
@@ -188,10 +188,10 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
 
       particles[i].setParticleCell(data);
 
-      data.aumentaT(-data.getDeltaT());       //faccio tornare il tempo indietro cos� gli altri elettroni di questo step non hanno il tempo gi� avanzato
-                              //il tempo avanza definitivamente in ciascun ciclo for esterno (sugli nsteps)
+      data.aumentaT(-data.getDeltaT());       // faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
+                                              // il tempo avanza definitivamente in ciascun ciclo 'for' esterno (sugli nsteps)
 
-      //INTEGRALI PRIMI
+      // INTEGRALI PRIMI
       potenziale.clear();
       zeta = particles[i].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
       gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
@@ -209,7 +209,7 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
         << setprecision(14) << setw(16) << particles[i].getParticleX() << "\t"
         << setw(16) << particles[i].getParticleY() << "\t"
         << setw(16) << particles[i].getParticleZ() << "\t"
-        //        << setw(16) << particles[i].getParticleCell() << "\t" 
+        //        << setw(16) << particles[i].getParticleCell() << "\t"
         << setw(16) << particles[i].getParticlePX() << "\t"
         << setw(16) << particles[i].getParticlePY() << "\t"
         << setw(16) << particles[i].getParticlePZ() << "\t"
@@ -323,8 +323,8 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
 
 
-      // 1� PASSO
-      //RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
+      // PASSO #1
+      // RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
       dx.setParticleX(particles[i].getParticlePX() / (gamma * particles[i].getParticleM()));
       dx.setParticleY(particles[i].getParticlePY() / (gamma * particles[i].getParticleM()));
       dx.setParticleZ(particles[i].getParticlePZ() / (gamma * particles[i].getParticleM()));
@@ -332,10 +332,10 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[0].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBz());
       dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[0].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBx());
 
-      //RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
+      // RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
       dx2 = dx;
 
-      //RIEMPIE x2 con le posizioni avanzate di particles[i] dopo il primo passo
+      // RIEMPIE x2 con le posizioni avanzate di particles[i] dopo il primo passo
       x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));      // E LE FORZE???
       x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
       x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
@@ -344,19 +344,19 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
 
 
-      // 2� PASSO
-      //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
+      // PASSO #2
+      // AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
       gridXX = x2.getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
       gridYY = x2.getParticleY() / data.getDeltaY();
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
       gridZZ = x2.getParticleZ() / data.getDeltaZ();
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
       coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
@@ -408,7 +408,7 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
       gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
 
-      //AGGIORNA dx con i nuovi valori
+      // AGGIORNA dx con i nuovi valori
       dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
       dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
       dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
@@ -417,7 +417,7 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[1].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBx());
 
 
-      //AGGIUNGE al dx2 i valori calcolati al secondo passo
+      // AGGIUNGE al dx2 i valori calcolati al secondo passo
       dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
       dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
       dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
@@ -425,7 +425,7 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
       dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
 
-      //RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo  // DA SISTEMARE!!!
+      // RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo  // DA SISTEMARE!!!
       x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));
       x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
       x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
@@ -435,8 +435,8 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
 
 
-      // 3� PASSO
-      //CALCOLA campi nella posizione x2 appena aggiornata
+      // PASSO #3
+      // CALCOLA campi nella posizione x2 appena aggiornata
       gridXX = x2.getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
       else gridX = (int)gridXX;                      //
@@ -499,7 +499,7 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
       gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
 
-      //AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
+      // AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
       dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
       dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
       dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
@@ -507,7 +507,7 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[2].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[2].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBz());
       dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[2].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[2].getBx());
 
-      //AGGIUNGE al dx2 i valori calcolati al terzo passo
+      // AGGIUNGE al dx2 i valori calcolati al terzo passo
       dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
       dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
       dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
@@ -515,7 +515,7 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
       dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
 
-      //RIEMPIE x2 con le posizione avanzate di particles[i]      // DA SISTEMARE!!!
+      // RIEMPIE x2 con le posizione avanzate di particles[i]      // DA SISTEMARE!!!
       x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * data.getDeltaT());
       x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * data.getDeltaT());
       x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * data.getDeltaT());
@@ -525,19 +525,19 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
 
 
-      // 4� PASSO
-      //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
+      // PASSO #4
+      // AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
       gridXX = x2.getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
       gridYY = x2.getParticleY() / data.getDeltaY();
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
       gridZZ = x2.getParticleZ() / data.getDeltaZ();
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
       coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
@@ -616,10 +616,10 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
       particles[i].setParticleCell(data);
 
-      data.aumentaT(-data.getDeltaT());       //faccio tornare il tempo indietro cos� gli altri elettroni di questo step non hanno il tempo gi� avanzato
-                              //il tempo avanza definitivamente in ciascun ciclo for esterno (sugli nsteps)
+      data.aumentaT(-data.getDeltaT());       // faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
+                                              // il tempo avanza definitivamente in ciascun ciclo for esterno (sugli nsteps)
 
-      //INTEGRALI PRIMI 
+      //INTEGRALI PRIMI
       potenziale.clear();
       zeta = particles[i].getParticleX() - C * data.getT();       // non usato nella mia struttura delle equazioni di campo
       gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
@@ -694,7 +694,7 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
         << setprecision(14) << setw(16) << particles[i].getParticleX() << "\t"
         << setw(16) << particles[i].getParticleY() << "\t"
         << setw(16) << particles[i].getParticleZ() << "\t"
-        //        << setw(16) << particles[i].getParticleCell() << "\t" 
+        //        << setw(16) << particles[i].getParticleCell() << "\t"
         << setw(16) << particles[i].getParticlePX() << "\t"
         << setw(16) << particles[i].getParticlePY() << "\t"
         << setw(16) << particles[i].getParticlePZ() << "\t"
@@ -719,8 +719,8 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
   int gridX, gridY, gridZ;
   Field FOP;
   vector<Field> fieldOnGrid;
-  Field *FOG;                             //DA SISTEMARE, C'� solo per avere un campo fittizio su una griglia on-the-fly per implementare l'algoritmo
-  FOG = new Field[1];                         //-------
+  Field *FOG;                             //DA SISTEMARE, c'e` solo per avere un campo fittizio su una griglia on-the-fly per implementare l'algoritmo
+  FOG = new Field[1];
 
   Field *campoSuPunto;
   campoSuPunto = new Field[1];
@@ -748,16 +748,16 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
-        cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+        cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
         return;
       }
 
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);
 
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));      // terzo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));                // primo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));          // secondo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));          // terzo punto
       fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
 
       FOP = interpolation2D_linear(data, particles[i], fieldOnGrid);
@@ -769,7 +769,7 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
 
 
-      // 1� PASSO
+      // PASSO #1
       //RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
       dx.setParticleX(particles[i].getParticlePX() / (gamma * particles[i].getParticleM()));
       dx.setParticleY(particles[i].getParticlePY() / (gamma * particles[i].getParticleM()));
@@ -790,7 +790,7 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
 
 
-      // 2� PASSO
+      // PASSO #2
       //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
       gridXX = x2.getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
@@ -806,7 +806,7 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
-        cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+        cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
         return;
       }
 
@@ -855,7 +855,7 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
 
 
-      // 3� PASSO
+      // PASSO #3
       //CALCOLA campi nella posizione x2 appena aggiornata
       gridXX = x2.getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
@@ -871,12 +871,12 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
-        cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+        cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
         return;
       }
 
 
-      //      riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);   // non � necessario ricalcolarlo perch� il tempo non � variato
+      //      riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);   // non e` necessario ricalcolarlo perche' il tempo non e` variato
 
       fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
       fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
@@ -917,23 +917,23 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
 
 
-      // 4� PASSO
+      // PASSO #4
       //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
       gridXX = x2.getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
       gridYY = x2.getParticleY() / data.getDeltaY();
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
       gridZZ = x2.getParticleZ() / data.getDeltaZ();
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
-        cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+        cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
         return;
       }
 
@@ -981,10 +981,10 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
       particles[i].setParticleCell(data);
 
-      data.aumentaT(-data.getDeltaT());       //faccio tornare il tempo indietro cos� gli altri elettroni di questo step non hanno il tempo gi� avanzato
+      data.aumentaT(-data.getDeltaT());       //faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
                               //il tempo avanza definitivamente in ciascun ciclo for esterno (sugli nsteps)
 
-      //INTEGRALI PRIMI da sistemare perch� calcolano il potenziale sulla particella e non sulla griglia e poi interpolando
+      //INTEGRALI PRIMI da sistemare perche' calcolano il potenziale sulla particella e non sulla griglia e poi interpolando
       potenziale.clear();
       zeta = particles[i].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
       gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
@@ -1003,16 +1003,16 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
-        cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+        cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
         return;
       }
 
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConPotenzialeAnalitico1D(data, campoSuPuntiGriglia);
 
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));      // terzo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));                // primo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));          // secondo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));          // terzo punto
       fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
 
       FOP = interpolation2D_linear(data, particles[i], fieldOnGrid);
@@ -1030,7 +1030,7 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
         << setprecision(14) << setw(16) << particles[i].getParticleX() << "\t"
         << setw(16) << particles[i].getParticleY() << "\t"
         << setw(16) << particles[i].getParticleZ() << "\t"
-        //        << setw(16) << particles[i].getParticleCell() << "\t" 
+        //<< setw(16) << particles[i].getParticleCell() << "\t"
         << setw(16) << particles[i].getParticlePX() << "\t"
         << setw(16) << particles[i].getParticlePY() << "\t"
         << setw(16) << particles[i].getParticlePZ() << "\t"
@@ -1051,9 +1051,9 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
 
   /*
   Se il numero di vertici (punti di griglia) dai quali bisogna interpolare il campo sulla particella sono:
-  2 -> il primo � alla sua sinistra, il secondo alla sua destra
-  4 -> il primo � il pi� vicino all'origine degli assi, il secondo si sposta lungo x, il terzo � il primo spostato lungo y e l'ultimo � il pi� lontano dagli assi
-  8 -> con la stessa filosofia di prima, i primi 4 sono nello stesso ordine e sono quelli appartenenti al piano pi� vicino ad xy, gli altri 4 sono pi� lontani di un dz
+  2 -> il primo e` alla sua sinistra, il secondo alla sua destra
+  4 -> il primo e` il piu` vicino all'origine degli assi, il secondo si sposta lungo x, il terzo e` il primo spostato lungo y e l'ultimo e` il piu` lontano dagli assi
+  8 -> con la stessa filosofia di prima, i primi 4 sono nello stesso ordine e sono quelli appartenenti al piano piu` vicino ad xy, gli altri 4 sono piu` lontani di un dz
   */
 
   Particle relativeCoord;
@@ -1285,7 +1285,7 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
   PROTOTIPO
     - in input deve avere i dati riguardo la griglia e riguardo la posizione della particella, non un vettore ma solo 1 particella e i campi in quell'istante
     - da essi si calcola la distanza relativa tra i punti di griglia e la posizione della particella
-    - in funzione di ci�, deve calcolare l'interpolazione dei campi sulla particella
+    - in funzione di cio`, deve calcolare l'interpolazione dei campi sulla particella
   */
   return tempField;
 }
@@ -1295,8 +1295,8 @@ Field interpolation2D_linear(Data data, Particle position, vector<Field> &values
 {
   /*
   Se il numero di vertici (punti di griglia) dai quali bisogna interpolare il campo sulla particella sono diversi da 4, la funzione esce restituendo -1
-  Se i vertici sono 4, vanno identificati in questo modo: il primo � il pi� vicino all'origine degli assi, il secondo si sposta lungo x,
-  il terzo � il primo spostato lungo y e l'ultimo � il pi� lontano dagli assi
+  Se i vertici sono 4, vanno identificati in questo modo: il primo e` il piu` vicino all'origine degli assi, il secondo si sposta lungo x,
+  il terzo e` il primo spostato lungo y e l'ultimo e` il piu` lontano dagli assi
   */
 
   Particle relativeCoord;
@@ -1532,14 +1532,14 @@ void evolveLPF_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
         b2 += 1.;
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+        //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+        //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
@@ -1581,7 +1581,7 @@ void evolveLPF_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
           << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
           << setw(16) << particles[j].getParticleY() << "\t"
           << setw(16) << particles[j].getParticleZ() << "\t"
-          //        << setw(16) << particles[j].getParticleCell() << "\t" 
+          //        << setw(16) << particles[j].getParticleCell() << "\t"
           << setw(16) << particles[j].getParticlePX() << "\t"
           << setw(16) << particles[j].getParticlePY() << "\t"
           << setw(16) << particles[j].getParticlePZ() << "\t"
@@ -1616,7 +1616,7 @@ void evolveLPF_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
   Field FOP;
   vector<Field> fieldOnGrid;
 
-  Field *FOG;                             //DA SISTEMARE, C'� solo per avere un campo fittizio su una griglia on-the-fly per implementare l'algoritmo
+  Field *FOG;                             //DA SISTEMARE, c'è solo per avere un campo fittizio su una griglia on-the-fly per implementare l'algoritmo
   FOG = new Field[1];                         //-------
 
   double gridXX, gridYY, gridZZ;
@@ -1650,18 +1650,18 @@ void evolveLPF_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
         fieldOnParticles.clear();
 
         //QUI MI CALCOLO I PUNTI DI RIFERIMENTO PER LA PARTICELLA IN ESAME nella posizione attuale
-        //forse c'� un modo pi� furbo per farlo sfruttando il # di cella in cui si trova che � noto
+        //forse c'e` un modo piu` furbo per farlo sfruttando il # di cella in cui si trova che e` noto
         gridXX = particles[j].getParticleX() / data.getDeltaX();
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-        else gridX = (int)gridXX;                      //
+        else gridX = (int)gridXX;
 
         gridYY = particles[j].getParticleY() / data.getDeltaY();
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-        else gridY = (int)gridYY;                      //
+        else gridY = (int)gridYY;
 
         gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-        else gridZ = (int)gridZZ;                      //
+        else gridZ = (int)gridZZ;
 
         coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
         coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
@@ -1731,25 +1731,25 @@ void evolveLPF_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
         b2 += 1.;
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+        //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+        //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
         ****************************************************************************/
 
-        //      /****************************************************************************
-              //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
+        // /****************************************************************************
+        //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
         pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
         pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
         pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
-  //      ****************************************************************************/
+        // ****************************************************************************/
 
         particles[j].setParticlePX(2. * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
         particles[j].setParticlePY(2. * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
@@ -1781,7 +1781,7 @@ void evolveLPF_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
           << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
           << setw(16) << particles[j].getParticleY() << "\t"
           << setw(16) << particles[j].getParticleZ() << "\t"
-          //        << setw(16) << particles[j].getParticleCell() << "\t" 
+          // << setw(16) << particles[j].getParticleCell() << "\t"
           << setw(16) << particles[j].getParticlePX() << "\t"
           << setw(16) << particles[j].getParticlePY() << "\t"
           << setw(16) << particles[j].getParticlePZ() << "\t"
@@ -1843,8 +1843,8 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
         particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
 
 
-        //QUI MI CALCOLO I PUNTI DI RIFERIMENTO PER LA PARTICELLA IN ESAME nella posizione attuale
-        //forse c'� un modo pi� furbo per farlo sfruttando il # di cella in cui si trova che � noto
+        // QUI MI CALCOLO I PUNTI DI RIFERIMENTO PER LA PARTICELLA IN ESAME nella posizione attuale
+        // forse c'e` un modo piu` furbo per farlo sfruttando il # di cella in cui si trova che e` noto
 
         fieldOnParticles.clear();       //SVUOTA il vettore dei campi sulle particelle ad ogni ciclo
 
@@ -1863,7 +1863,7 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
         if (gridX < 0 || gridY < 0 || gridZ < 0)
         {
-          cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+          cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
           return;
         }
 
@@ -1895,14 +1895,14 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
         b2 += 1.;
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+        //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+        //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
@@ -1946,7 +1946,7 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
         if (gridX < 0 || gridY < 0 || gridZ < 0)
         {
-          cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+          cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
           return;
         }
 
@@ -1971,7 +1971,7 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
           << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
           << setw(16) << particles[j].getParticleY() << "\t"
           << setw(16) << particles[j].getParticleZ() << "\t"
-          //        << setw(16) << particles[j].getParticleCell() << "\t" 
+          //        << setw(16) << particles[j].getParticleCell() << "\t"
           << setw(16) << particles[j].getParticlePX() << "\t"
           << setw(16) << particles[j].getParticlePY() << "\t"
           << setw(16) << particles[j].getParticlePZ() << "\t"
@@ -1984,9 +1984,9 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
         /*
         //UPDATE CAMPI ATTORNO ALLA NUOVA POSIZIONE DELLA PARTICELLA  (al momento non li evolve, il set li pone pari al get precedente)
-        gridX = (int) (particles[j].getParticleX()/data.getDeltaX());   //il punto di griglia lungo l'asse x pi� vicino all'origine
-        gridY = (int) (particles[j].getParticleY()/data.getDeltaY());   //il punto di griglia lungo l'asse y pi� vicino all'origine
-        gridZ = (int) (particles[j].getParticleZ()/data.getDeltaZ());   //il punto di griglia lungo l'asse z pi� vicino all'origine
+        gridX = (int) (particles[j].getParticleX()/data.getDeltaX());   //il punto di griglia lungo l'asse x piu` vicino all'origine
+        gridY = (int) (particles[j].getParticleY()/data.getDeltaY());   //il punto di griglia lungo l'asse y piu` vicino all'origine
+        gridZ = (int) (particles[j].getParticleZ()/data.getDeltaZ());   //il punto di griglia lungo l'asse z piu` vicino all'origine
 
         campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEx() );       // primo punto
         campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEy() );
@@ -2055,8 +2055,8 @@ void calcolaCampoInUnIstante(Data data, vector<Particle> &particelle, vector<Fie
   /*
   In questa funzione si genera un vettore contenente n particelle, n da definire prima di chiamare la funzione
   invocando data.setNelectrons() se si vuole avere qualcosa indietro, in posizione random. Su ciascuna viene calcolato
-  il valore del campo analitico che deve essere gi� stato definito prima di chiamare la funzione invocando
-  data.setK() e data.setA()  ( E= - k A sin[k(z-ct)] ) in un dato istante gi� definito tramite data.impostaT(0)
+  il valore del campo analitico che deve essere gia` stato definito prima di chiamare la funzione invocando
+  data.setK() e data.setA()  ( E= - k A sin[k(z-ct)] ) in un dato istante gia` definito tramite data.impostaT(0)
   */
 
   calcolaCampoAnalitico1DSuParticelle(data, particelle, campiSuParticelle);
@@ -2083,8 +2083,8 @@ void calcolaEvoluzioneCampoSuParticelle(Data data, vector<Particle> &particelle,
   /*
   In questa funzione si genera un vettore contenente n particelle, n da definire prima di chiamare la funzione
   invocando data.setNelectrons() se si vuole avere qualcosa indietro, in posizione random se sono 3+, manuale se sono di meno.
-  Su ciascuna viene calcolato il valore del campo analitico, che deve essere gi� stato definito prima di chiamare la funzione invocando
-  data.setK() e data.setA()  ( E = -k A sin[k(z-ct)] ) in un dato istante gi� definito tramite data.setT().
+  Su ciascuna viene calcolato il valore del campo analitico, che deve essere gia` stato definito prima di chiamare la funzione invocando
+  data.setK() e data.setA()  ( E = -k A sin[k(z-ct)] ) in un dato istante gia` definito tramite data.setT().
   L'operazione viene ripetuta per nsteps distanti ciascuno un deltaT, impostati rispettivamente con data.setNsteps(int nStepsMin)
   e data.setDeltaT(double deltaTmin)
   */
@@ -2152,7 +2152,7 @@ void evolveLPF4_nogrid_TURCHETTI(Data data, vector<Particle> &particles, vector<
     {
       fieldOnParticles.clear();
 
-      //1� PASSO
+      // PASSO #1
       gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
       particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() / (gamma));
       particles[j].setParticleY(particles[j].getParticleY() + dtx1 * particles[j].getParticlePY() / (gamma));
@@ -2177,7 +2177,7 @@ void evolveLPF4_nogrid_TURCHETTI(Data data, vector<Particle> &particles, vector<
 
 
 
-      //2� PASSO
+      // PASSO #2
       gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
       particles[j].setParticleX(particles[j].getParticleX() + dtx2 * particles[j].getParticlePX() / (gamma));
       particles[j].setParticleY(particles[j].getParticleY() + dtx2 * particles[j].getParticlePY() / (gamma));
@@ -2201,7 +2201,7 @@ void evolveLPF4_nogrid_TURCHETTI(Data data, vector<Particle> &particles, vector<
       data.aumentaT(dtp2);
 
 
-      //3� PASSO
+      // PASSO #3
       gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
       particles[j].setParticleX(particles[j].getParticleX() + dtx3 * particles[j].getParticlePX() / (gamma));
       particles[j].setParticleY(particles[j].getParticleY() + dtx3 * particles[j].getParticlePY() / (gamma));
@@ -2223,7 +2223,7 @@ void evolveLPF4_nogrid_TURCHETTI(Data data, vector<Particle> &particles, vector<
       particles[j].setParticlePY(2.* pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
 
 
-      //4� PASSO - SOLO EVOLUZIONE POSIZIONI
+      // PASSO #4 - SOLO EVOLUZIONE POSIZIONI
       gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
 
       particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() / gamma);
@@ -2255,7 +2255,7 @@ void evolveLPF4_nogrid_TURCHETTI(Data data, vector<Particle> &particles, vector<
         << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
         << setw(16) << particles[j].getParticleY() << "\t"
         << setw(16) << particles[j].getParticleZ() << "\t"
-        //        << setw(16) << particles[j].getParticleCell() << "\t" 
+        //        << setw(16) << particles[j].getParticleCell() << "\t"
         << setw(16) << particles[j].getParticlePX() << "\t"
         << setw(16) << particles[j].getParticlePY() << "\t"
         << setw(16) << particles[j].getParticlePZ() << "\t"
@@ -2299,14 +2299,14 @@ void evolveLPF4_nogrid(Data data, vector<Particle> &particles, ofstream &outputs
   {
     for (int j = 0; j < data.getNelectrons(); j++)
     {
-      //1� PASSO
+      // PASSO #1
       evolveLPF(data, particles[j], dtp1, dtx1);
-      //2� PASSO
+      // PASSO #2
       evolveLPF(data, particles[j], dtp2, dtx2);
-      //3� PASSO
+      // PASSO #3
       evolveLPF(data, particles[j], dtp3, dtx3);
 
-      //4� PASSO - evoluzione solo posizioni
+      // PASSO #4 - evoluzione solo posizioni
       gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
       gamma_inv = 1. / gamma;
       particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() * gamma_inv);
@@ -2338,9 +2338,9 @@ void evolveLPF4_nogrid(Data data, vector<Particle> &particles, ofstream &outputs
         << setw(16) << I2 << "\t"
         << setw(16) << I3 << endl;
 
-      data.aumentaT(-data.getDeltaT());   // cos� un altro elettrone dello stesso step non si trova i tempi avanzati
+      data.aumentaT(-data.getDeltaT());   // cosi` un altro elettrone dello stesso step non si trova i tempi avanzati
     }
-    data.aumentaT(data.getDeltaT());        // � questo il vero avanzamento di uno step temporale del tempo del sistema
+    data.aumentaT(data.getDeltaT());      // e` questo il vero avanzamento di uno step temporale del tempo del sistema
   }
 }
 
@@ -2365,8 +2365,8 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
   Field FOP;
   vector<Field> fieldOnGrid;
 
-  Field *FOG;                             //DA SISTEMARE, C'� solo per avere un campo fittizio su una griglia on-the-fly per implementare l'algoritmo
-  FOG = new Field[1];                         //-------
+  Field *FOG;                             // DA SISTEMARE, c'è solo per avere un campo fittizio su una griglia on-the-fly per implementare l'algoritmo
+  FOG = new Field[1];
 
   double gridXX, gridYY, gridZZ;
   int gridX, gridY, gridZ;
@@ -2401,7 +2401,7 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 
       fieldOnParticles.clear();
 
-      //1� STEP
+      // STEP #1
 
       gridXX = particles[j].getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
@@ -2427,18 +2427,20 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
       coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
       coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
       coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      /*      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-            coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-            coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
-            coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX()+data.getDeltaX());
-            coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-            coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
-            coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-            coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY()+data.getDeltaY());
-            coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
-            coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX()+data.getDeltaX());
-            coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY()+data.getDeltaY());
-            coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());       */
+      /*
+      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
+      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
+      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
+      coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX()+data.getDeltaX());
+      coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
+      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
+      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
+      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY()+data.getDeltaY());
+      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
+      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX()+data.getDeltaX());
+      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY()+data.getDeltaY());
+      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
+      */
 
       data.aumentaT(dtx1);
 
@@ -2450,14 +2452,16 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
       fieldOnGrid.push_back(*FOG);
       calcolaCampoAnalitico1DSuParticella(data, coordinateQuartoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
-      /*      calcolaCampoAnalitico1DSuParticella(data, coordinateQuintoPuntoGriglia, *FOG);
-            fieldOnGrid.push_back(*FOG);
-            calcolaCampoAnalitico1DSuParticella(data, coordinateSestoPuntoGriglia, *FOG);
-            fieldOnGrid.push_back(*FOG);
-            calcolaCampoAnalitico1DSuParticella(data, coordinateSettimoPuntoGriglia, *FOG);
-            fieldOnGrid.push_back(*FOG);
-            calcolaCampoAnalitico1DSuParticella(data, coordinateOttavoPuntoGriglia, *FOG);
-            fieldOnGrid.push_back(*FOG);                                  */
+      /*
+      calcolaCampoAnalitico1DSuParticella(data, coordinateQuintoPuntoGriglia, *FOG);
+      fieldOnGrid.push_back(*FOG);
+      calcolaCampoAnalitico1DSuParticella(data, coordinateSestoPuntoGriglia, *FOG);
+      fieldOnGrid.push_back(*FOG);
+      calcolaCampoAnalitico1DSuParticella(data, coordinateSettimoPuntoGriglia, *FOG);
+      fieldOnGrid.push_back(*FOG);
+      calcolaCampoAnalitico1DSuParticella(data, coordinateOttavoPuntoGriglia, *FOG);
+      fieldOnGrid.push_back(*FOG);
+      */
 
       FOP = interpolation2D_linear(data, particles[j], fieldOnGrid);
       fieldOnParticles.push_back(FOP);
@@ -2486,32 +2490,32 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
       b2 = 1. + pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
 
       /****************************************************************************
-      //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+      //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
       pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
       pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
       pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
       ****************************************************************************/
 
       /****************************************************************************
-      //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+      //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
       pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
       pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
       pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
       ****************************************************************************/
 
-      //      /****************************************************************************
+      // /****************************************************************************
             //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
       pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
       pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
       pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
-//      ****************************************************************************/
+      // ****************************************************************************/
 
       particles[j].setParticlePX(2 * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
       particles[j].setParticlePY(2 * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
       particles[j].setParticlePZ(2 * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
 
 
-      //2� STEP
+      // STEP #2
       gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
       gamma_inv = 1. / gamma;
 
@@ -2522,15 +2526,15 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 
       gridXX = particles[j].getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
       gridYY = particles[j].getParticleY() / data.getDeltaY();
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
       gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
       coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
@@ -2575,25 +2579,25 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
       b2 = 1. + pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
 
       /****************************************************************************
-      //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+      //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
       pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
       pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
       pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
       ****************************************************************************/
 
       /****************************************************************************
-      //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+      //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
       pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
       pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
       pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
       ****************************************************************************/
 
-      //      /****************************************************************************
-            //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
+      // /****************************************************************************
+      //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
       pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
       pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
       pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
-//      ****************************************************************************/
+      // ****************************************************************************/
 
 
       particles[j].setParticlePX(2 * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
@@ -2601,7 +2605,7 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
       particles[j].setParticlePZ(2 * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
 
 
-      //3� STEP
+      // STEP #3
       gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
       gamma_inv = 1. / gamma;
 
@@ -2611,15 +2615,15 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 
       gridXX = particles[j].getParticleX() / data.getDeltaX();
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
       gridYY = particles[j].getParticleY() / data.getDeltaY();
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
       gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
       coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
@@ -2667,25 +2671,25 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 
 
       /****************************************************************************
-      //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+      //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
       pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
       pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
       pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
       ****************************************************************************/
 
       /****************************************************************************
-      //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+      //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
       pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
       pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
       pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
       ****************************************************************************/
 
-      //      /****************************************************************************
-            //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
+      // /****************************************************************************
+      //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
       pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
       pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
       pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
-//      ****************************************************************************/
+      // ****************************************************************************/
 
       particles[j].setParticlePX(2 * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
       particles[j].setParticlePY(2 * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
@@ -2693,7 +2697,7 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 
 
 
-      //4� PASSO - evoluzione solo posizioni
+      // PASSO #4 - evoluzione solo posizioni
       gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
       gamma_inv = 1. / gamma;
 
@@ -2723,7 +2727,7 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
         << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
         << setw(16) << particles[j].getParticleY() << "\t"
         << setw(16) << particles[j].getParticleZ() << "\t"
-        //        << setw(16) << particles[j].getParticleCell() << "\t" 
+        // << setw(16) << particles[j].getParticleCell() << "\t"
         << setw(16) << particles[j].getParticlePX() << "\t"
         << setw(16) << particles[j].getParticlePY() << "\t"
         << setw(16) << particles[j].getParticlePZ() << "\t"
@@ -2739,8 +2743,8 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &fieldOnParticles, vector<Field> &campoSuPuntiGriglia, ofstream &outputstream)
 {
 
-  //AL MOMENTO NON E' CORRETTAMENTE IMPLEMENTATA, FA LE STESSE COSE DI evolveLPF_withgrid (_nemmeno_ quello al 4� ordine, quindi!)
-  //OLTRETUTTO non � nemmeno la versione pi� aggiornata di evolveLPF_withgrid, quindi � pure completamente buggato!
+  //AL MOMENTO NON E' CORRETTAMENTE IMPLEMENTATA, FA LE STESSE COSE DI evolveLPF_withgrid (_nemmeno_ quello di ordine 4, quindi!)
+  //OLTRETUTTO non e` nemmeno la versione piu` aggiornata di evolveLPF_withgrid, quindi e` pure completamente buggato!
 
   vector<Field> potenzialeSuPuntiGriglia;
 
@@ -2787,26 +2791,26 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
 
 
         //QUI MI CALCOLO I PUNTI DI RIFERIMENTO PER LA PARTICELLA IN ESAME nella posizione attuale
-        //forse c'� un modo pi� furbo per farlo sfruttando il # di cella in cui si trova che � noto
+        //forse c'e` un modo piu` furbo per farlo sfruttando il # di cella in cui si trova che e` noto
 
         fieldOnParticles.clear();       //SVUOTA il vettore dei campi sulle particelle ad ogni ciclo
 
 
         gridXX = particles[j].getParticleX() / data.getDeltaX();
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-        else gridX = (int)gridXX;                      //
+        else gridX = (int)gridXX;
 
         gridYY = particles[j].getParticleY() / data.getDeltaY();
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-        else gridY = (int)gridYY;                      //
+        else gridY = (int)gridYY;
 
         gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-        else gridZ = (int)gridZZ;                      //
+        else gridZ = (int)gridZZ;
 
         if (gridX < 0 || gridY < 0 || gridZ < 0)
         {
-          cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+          cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
           return;
         }
 
@@ -2838,14 +2842,14 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
         b2 += 1.;
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+        //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
-        //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+        //p(n+1/2) = [pstar + pstar x b + b x (pstar  x b)] / b2   SECONDO LONDRILLO
         pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
         pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
         pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
@@ -2878,19 +2882,19 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
 
         gridXX = particles[j].getParticleX() / data.getDeltaX();
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-        else gridX = (int)gridXX;                      //
+        else gridX = (int)gridXX;
 
         gridYY = particles[j].getParticleY() / data.getDeltaY();
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-        else gridY = (int)gridYY;                      //
+        else gridY = (int)gridYY;
 
         gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-        else gridZ = (int)gridZZ;                      //
+        else gridZ = (int)gridZZ;
 
         if (gridX < 0 || gridY < 0 || gridZ < 0)
         {
-          cout << "La particella � uscita dai boundaries - simulazione interrotta" << endl;
+          cout << "La particella e` uscita dai boundaries - simulazione interrotta" << endl;
           return;
         }
 
@@ -2916,7 +2920,7 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
           << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
           << setw(16) << particles[j].getParticleY() << "\t"
           << setw(16) << particles[j].getParticleZ() << "\t"
-          //        << setw(16) << particles[j].getParticleCell() << "\t" 
+          // << setw(16) << particles[j].getParticleCell() << "\t"
           << setw(16) << particles[j].getParticlePX() << "\t"
           << setw(16) << particles[j].getParticlePY() << "\t"
           << setw(16) << particles[j].getParticlePZ() << "\t"
@@ -2929,9 +2933,9 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
 
         /*
         //UPDATE CAMPI ATTORNO ALLA NUOVA POSIZIONE DELLA PARTICELLA  (al momento non li evolve, il set li pone pari al get precedente)
-        gridX = (int) (particles[j].getParticleX()/data.getDeltaX());   //il punto di griglia lungo l'asse x pi� vicino all'origine
-        gridY = (int) (particles[j].getParticleY()/data.getDeltaY());   //il punto di griglia lungo l'asse y pi� vicino all'origine
-        gridZ = (int) (particles[j].getParticleZ()/data.getDeltaZ());   //il punto di griglia lungo l'asse z pi� vicino all'origine
+        gridX = (int) (particles[j].getParticleX()/data.getDeltaX());   //il punto di griglia lungo l'asse x piu` vicino all'origine
+        gridY = (int) (particles[j].getParticleY()/data.getDeltaY());   //il punto di griglia lungo l'asse y piu` vicino all'origine
+        gridZ = (int) (particles[j].getParticleZ()/data.getDeltaZ());   //il punto di griglia lungo l'asse z piu` vicino all'origine
 
         campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEx() );       // primo punto
         campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEy() );
@@ -3059,14 +3063,14 @@ void evolveLPF(Data data, Particle &particle, double dtp, double dtx)
   b2 += 1.0;
 
   /****************************************************************************
-  //p(n+1/2) = [pstar + pstar x b + (pstar x b)�b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che � sbagliato, anche perch� l'ultimo termine � uno scalare!)
+  //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
   pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
   pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
   pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
   ****************************************************************************/
 
   //  /****************************************************************************
-    //p(n+1/2) = [pstar + pstar x b + b�(pstar � b)] / b2   SECONDO LONDRILLO
+    //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
   pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx()) / b2);
   pHalfAdvanced.setParticlePY((pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy()) / b2);
   pHalfAdvanced.setParticlePZ((pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz()) / b2);
