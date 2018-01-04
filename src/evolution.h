@@ -20,15 +20,12 @@
     along with PICcol.  If not, see <http://www.gnu.org/licenses/>.
 **************************************************************************/
 
-
-
 #ifndef __EVOLUTION_H
 #define __EVOLUTION_H
 
-#include <vector>
-#include <fstream>
 #include "datatypes.h"
-
+#include <fstream>
+#include <vector>
 
 void evolveRK4_nogrid(Data, std::vector<Particle>&, std::vector<Field>&, std::ofstream&);
 void evolveRK4_withgrid_onthefly(Data, std::vector<Particle>&, std::vector<Field>&, std::ofstream&);

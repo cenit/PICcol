@@ -20,21 +20,17 @@
     along with PICcol.  If not, see <http://www.gnu.org/licenses/>.
 **************************************************************************/
 
-
-
 #ifndef __FILLER_H
 #define __FILLER_H
 
-#include <vector>
 #include "datatypes.h"
+#include <vector>
 
-void fillParticlesFromFile(char*, std::ofstream&);
 void riempiPuntiGrigliaConCampoAnalitico1D(Data, std::vector<Field>&);
 void riempiPuntiGrigliaConPotenzialeAnalitico1D(Data, std::vector<Field>&);
 void calcolaCampoAnalitico1DSuParticelle(Data, std::vector<Particle>&, std::vector<Field>&);
 void calcolaCampoAnalitico1DSuParticella(Data, Particle, Field&);
 void calcolaPotenzialeAnalitico1DSuParticella(Data, Particle, Field&);
 void creaVettoreParticelle(Data, std::vector<Particle>&);
-
 
 #endif //__FILLER_HPP
