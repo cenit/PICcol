@@ -21,9 +21,6 @@
 **************************************************************************/
 
 
-
-#define OUTPUTALL
-
 #include <iostream>
 #include <iomanip>
 #include <cstdio>
@@ -31,15 +28,14 @@
 #include <ctime>
 #include <cstdlib>
 #include <fstream>
-#include <limits> // for declaration of 'numeric_limits'
-#include <ios>    // for declaration of 'streamsize'
+#include <limits>
+#include <ios>
 
 #include "evolution.h"
 #include "filler.h"
 
 using namespace std;
-
-const double C = 1.00;
+constexpr double SPEED_OF_LIGHT = 1.0;
 
 void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fieldOnParticles, ofstream &outputstream)
 {
@@ -52,11 +48,11 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
   campoSuPunto = new Field[1];
   vector<Field> potenziale;
 
-  for (int j = 0; j < data.getNsteps(); j++)
+  for (int j = 0; j < data.nSteps; j++)
   {
-    for (int i = 0; i < data.getNelectrons(); i++)
+    for (int i = 0; i < data.n_electrons; i++)
     {
-      gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(particles[i].px, 2) + pow(particles[i].py, 2) + pow(particles[i].pz, 2));
       fieldOnParticles.clear();
       calcolaCampoAnalitico1DSuParticella(data, particles[i], *campoSuPunto);
       fieldOnParticles.push_back(*campoSuPunto);
@@ -64,58 +60,58 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
 
       // PASSO #1
       // RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
-      dx.setParticleX(particles[i].getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(particles[i].getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(particles[i].getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[0].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[0].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[0].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBx());
+      dx.setParticleX(particles[i].px / (gamma * particles[i].m));
+      dx.setParticleY(particles[i].py / (gamma * particles[i].m));
+      dx.setParticleZ(particles[i].pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[0].ex + particles[i].q * dx.y * fieldOnParticles[0].bz - particles[i].q * dx.z * fieldOnParticles[0].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[0].ey + particles[i].q * dx.z * fieldOnParticles[0].bx - particles[i].q * dx.x * fieldOnParticles[0].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[0].ez + particles[i].q * dx.x * fieldOnParticles[0].by - particles[i].q * dx.y * fieldOnParticles[0].bx);
 
       // RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
       dx2 = dx;
 
       //RIEMPIE x2 con le posizioni avanzate di particles[i] dopo il primo passo
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));      // E LE FORZE???
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  (data.getDeltaT()*0.5));
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  (data.getDeltaT()*0.5));
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
+      x2.setParticleX(particles[i].x + dx.x * (data.dt*0.5));
+      x2.setParticleY(particles[i].y + dx.y * (data.dt*0.5));
+      x2.setParticleZ(particles[i].z + dx.z * (data.dt*0.5));
+      x2.setParticlePX(particles[i].px + dx.px *  (data.dt*0.5));
+      x2.setParticlePY(particles[i].py + dx.py *  (data.dt*0.5));
+      x2.setParticlePZ(particles[i].pz + dx.pz *  (data.dt*0.5));
 
 
       // PASSO #2
       // AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
-//      fieldOnParticles.clear();
-      data.aumentaT(data.getDeltaT() * 0.5);
+      //fieldOnParticles.clear();
+      data.aumentaT(data.dt * 0.5);
       calcolaCampoAnalitico1DSuParticella(data, x2, *campoSuPunto);
       fieldOnParticles.push_back(*campoSuPunto);
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
       // AGGIORNA dx con i nuovi valori
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[1].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[1].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[1].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[1].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[1].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBx());
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[1].ex + particles[i].q * dx.y * fieldOnParticles[1].bz - particles[i].q * dx.z * fieldOnParticles[1].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[1].ey + particles[i].q * dx.z * fieldOnParticles[1].bx - particles[i].q * dx.x * fieldOnParticles[1].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[1].ez + particles[i].q * dx.x * fieldOnParticles[1].by - particles[i].q * dx.y * fieldOnParticles[1].bx);
 
 
       // AGGIUNGE al dx2 i valori calcolati al secondo passo
-      dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + 2 * dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + 2 * dx.x);
+      dx2.setParticleY(dx2.y + 2 * dx.y);
+      dx2.setParticleZ(dx2.z + 2 * dx.z);
+      dx2.setParticlePX(dx2.px + 2 * dx.px);
+      dx2.setParticlePY(dx2.py + 2 * dx.py);
+      dx2.setParticlePZ(dx2.pz + 2 * dx.pz);
 
-      // RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo  // DA SISTEMARE!!!
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  (data.getDeltaT()*0.5));
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  (data.getDeltaT()*0.5));
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
+      // RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo
+      x2.setParticleX(particles[i].x + dx.x * (data.dt*0.5));
+      x2.setParticleY(particles[i].y + dx.y * (data.dt*0.5));
+      x2.setParticleZ(particles[i].z + dx.z * (data.dt*0.5));
+      x2.setParticlePX(particles[i].px + dx.px *  (data.dt*0.5));
+      x2.setParticlePY(particles[i].py + dx.py *  (data.dt*0.5));
+      x2.setParticlePZ(particles[i].pz + dx.pz *  (data.dt*0.5));
 
 
 
@@ -125,100 +121,98 @@ void evolveRK4_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
       calcolaCampoAnalitico1DSuParticella(data, x2, *campoSuPunto);
       fieldOnParticles.push_back(*campoSuPunto);
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
-      //AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[2].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[2].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[2].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[2].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[2].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[2].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[2].getBx());
+      //AGGIORNA dx con i nuovi valori
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[2].ex + particles[i].q * dx.y * fieldOnParticles[2].bz - particles[i].q * dx.z * fieldOnParticles[2].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[2].ey + particles[i].q * dx.z * fieldOnParticles[2].bx - particles[i].q * dx.x * fieldOnParticles[2].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[2].ez + particles[i].q * dx.x * fieldOnParticles[2].by - particles[i].q * dx.y * fieldOnParticles[2].bx);
 
       //AGGIUNGE al dx2 i valori calcolati al terzo passo
-      dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + 2 * dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + 2 * dx.x);
+      dx2.setParticleY(dx2.y + 2 * dx.y);
+      dx2.setParticleZ(dx2.z + 2 * dx.z);
+      dx2.setParticlePX(dx2.px + 2 * dx.px);
+      dx2.setParticlePY(dx2.py + 2 * dx.py);
+      dx2.setParticlePZ(dx2.pz + 2 * dx.pz);
 
-      //RIEMPIE x2 con le posizione avanzate di particles[i]      // DA SISTEMARE!!!
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * data.getDeltaT());
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * data.getDeltaT());
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * data.getDeltaT());
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  data.getDeltaT());
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  data.getDeltaT());
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  data.getDeltaT());
+      //RIEMPIE x2 con le posizione avanzate di particles[i]
+      x2.setParticleX(particles[i].x + dx.x * data.dt);
+      x2.setParticleY(particles[i].y + dx.y * data.dt);
+      x2.setParticleZ(particles[i].z + dx.z * data.dt);
+      x2.setParticlePX(particles[i].px + dx.px *  data.dt);
+      x2.setParticlePY(particles[i].py + dx.py *  data.dt);
+      x2.setParticlePZ(particles[i].pz + dx.pz *  data.dt);
 
 
 
       // PASSO #4
       //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
       //fieldOnParticles.clear();
-      data.aumentaT(data.getDeltaT() * 0.5);
+      data.aumentaT(data.dt * 0.5);
       calcolaCampoAnalitico1DSuParticella(data, x2, *campoSuPunto);
       fieldOnParticles.push_back(*campoSuPunto);
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
-      //AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[3].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[3].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[3].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[3].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[3].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[3].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[3].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[3].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[3].getBx());
+      //AGGIORNA dx con i nuovi valori
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[3].ex + particles[i].q * dx.y * fieldOnParticles[3].bz - particles[i].q * dx.z * fieldOnParticles[3].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[3].ey + particles[i].q * dx.z * fieldOnParticles[3].bx - particles[i].q * dx.x * fieldOnParticles[3].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[3].ez + particles[i].q * dx.x * fieldOnParticles[3].by - particles[i].q * dx.y * fieldOnParticles[3].bx);
 
 
       //AGGIUNGE al dx2 i valori calcolati al terzo passo
-      dx2.setParticleX(dx2.getParticleX() + dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + dx.x);
+      dx2.setParticleY(dx2.y + dx.y);
+      dx2.setParticleZ(dx2.z + dx.z);
+      dx2.setParticlePX(dx2.px + dx.px);
+      dx2.setParticlePY(dx2.py + dx.py);
+      dx2.setParticlePZ(dx2.pz + dx.pz);
 
 
-      particles[i].setParticleX(particles[i].getParticleX() + (data.getDeltaT() / 6.) * dx2.getParticleX());
-      particles[i].setParticleY(particles[i].getParticleY() + (data.getDeltaT() / 6.) * dx2.getParticleY());
-      particles[i].setParticleZ(particles[i].getParticleZ() + (data.getDeltaT() / 6.) * dx2.getParticleZ());
-      particles[i].setParticlePX(particles[i].getParticlePX() + (data.getDeltaT() / 6.) * dx2.getParticlePX());
-      particles[i].setParticlePY(particles[i].getParticlePY() + (data.getDeltaT() / 6.) * dx2.getParticlePY());
-      particles[i].setParticlePZ(particles[i].getParticlePZ() + (data.getDeltaT() / 6.) * dx2.getParticlePZ());
+      particles[i].setParticleX(particles[i].x + (data.dt / 6.) * dx2.x);
+      particles[i].setParticleY(particles[i].y + (data.dt / 6.) * dx2.y);
+      particles[i].setParticleZ(particles[i].z + (data.dt / 6.) * dx2.z);
+      particles[i].setParticlePX(particles[i].px + (data.dt / 6.) * dx2.px);
+      particles[i].setParticlePY(particles[i].py + (data.dt / 6.) * dx2.py);
+      particles[i].setParticlePZ(particles[i].pz + (data.dt / 6.) * dx2.pz);
 
-      particles[i].setParticleCell(data);
-
-      data.aumentaT(-data.getDeltaT());       // faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
-                                              // il tempo avanza definitivamente in ciascun ciclo 'for' esterno (sugli nsteps)
+      data.aumentaT(-data.dt);       // faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
+                                     // il tempo avanza definitivamente in ciascun ciclo 'for' esterno (sugli nsteps)
 
       // INTEGRALI PRIMI
       potenziale.clear();
-      zeta = particles[i].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
-      gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
+      zeta = particles[i].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
+      gamma = sqrt(1 + pow(particles[i].px, 2) + pow(particles[i].py, 2) + pow(particles[i].pz, 2));
       calcolaPotenzialeAnalitico1DSuParticella(data, particles[i], *campoSuPunto);
       potenziale.push_back(*campoSuPunto);
 
-      I1 = (particles[i].getParticlePY() / (particles[i].getParticleM()*C)) + potenziale[0].getEy();
-      I2 = particles[i].getParticlePZ() / (particles[i].getParticleM()*C);
-      I3 = gamma - particles[i].getParticlePX() / (particles[i].getParticleM()*C);
+      I1 = (particles[i].py / (particles[i].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+      I2 = particles[i].pz / (particles[i].m*SPEED_OF_LIGHT);
+      I3 = gamma - particles[i].px / (particles[i].m*SPEED_OF_LIGHT);
 
       potenziale.clear();
 
       outputstream
         << setw(12) << i + 1 << "\t"
-        << setprecision(14) << setw(16) << particles[i].getParticleX() << "\t"
-        << setw(16) << particles[i].getParticleY() << "\t"
-        << setw(16) << particles[i].getParticleZ() << "\t"
-        //        << setw(16) << particles[i].getParticleCell() << "\t"
-        << setw(16) << particles[i].getParticlePX() << "\t"
-        << setw(16) << particles[i].getParticlePY() << "\t"
-        << setw(16) << particles[i].getParticlePZ() << "\t"
+        << setprecision(14) << setw(16) << particles[i].x << "\t"
+        << setw(16) << particles[i].y << "\t"
+        << setw(16) << particles[i].z << "\t"
+        // << setw(16) << particles[i].getParticleCell() << "\t"
+        << setw(16) << particles[i].px << "\t"
+        << setw(16) << particles[i].py << "\t"
+        << setw(16) << particles[i].pz << "\t"
         << setw(16) << zeta << "\t"
         << setw(16) << I1 << "\t"
         << setw(16) << I2 << "\t"
         << setw(16) << I3 << endl;
     }
-    data.aumentaT(data.getDeltaT());
+    data.aumentaT(data.dt);
   }
 }
 
@@ -252,50 +246,50 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
   vector<Field> fieldOnGrid;
   vector<Field> potenziale;
 
-  for (int j = 0; j < data.getNsteps(); j++)
+  for (int j = 0; j < data.nSteps; j++)
   {
-    data.aumentaT(data.getDeltaT());
-    for (int i = 0; i < data.getNelectrons(); i++)
+    data.aumentaT(data.dt);
+    for (int i = 0; i < data.n_electrons; i++)
     {
 
       fieldOnParticles.clear();       //SVUOTA il vettore dei campi sulle particelle ad ogni ciclo
 
-      gridXX = particles[i].getParticleX() / data.getDeltaX();
+      gridXX = particles[i].x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = particles[i].getParticleY() / data.getDeltaY();
+      gridYY = particles[i].y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = particles[i].getParticleZ() / data.getDeltaZ();
+      gridZZ = particles[i].z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSestoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSestoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
 
       calcolaCampoAnalitico1DSuParticella(data, coordinatePrimoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
@@ -320,68 +314,68 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       fieldOnGrid.clear();
 
 
-      gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(particles[i].px, 2) + pow(particles[i].py, 2) + pow(particles[i].pz, 2));
 
 
       // PASSO #1
       // RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
-      dx.setParticleX(particles[i].getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(particles[i].getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(particles[i].getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[0].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[0].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[0].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBx());
+      dx.setParticleX(particles[i].px / (gamma * particles[i].m));
+      dx.setParticleY(particles[i].py / (gamma * particles[i].m));
+      dx.setParticleZ(particles[i].pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[0].ex + particles[i].q * dx.y * fieldOnParticles[0].bz - particles[i].q * dx.z * fieldOnParticles[0].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[0].ey + particles[i].q * dx.z * fieldOnParticles[0].bx - particles[i].q * dx.x * fieldOnParticles[0].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[0].ez + particles[i].q * dx.x * fieldOnParticles[0].by - particles[i].q * dx.y * fieldOnParticles[0].bx);
 
       // RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
       dx2 = dx;
 
       // RIEMPIE x2 con le posizioni avanzate di particles[i] dopo il primo passo
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));      // E LE FORZE???
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  (data.getDeltaT()*0.5));
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  (data.getDeltaT()*0.5));
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
+      x2.setParticleX(particles[i].x + dx.x * (data.dt*0.5));
+      x2.setParticleY(particles[i].y + dx.y * (data.dt*0.5));
+      x2.setParticleZ(particles[i].z + dx.z * (data.dt*0.5));
+      x2.setParticlePX(particles[i].px + dx.px *  (data.dt*0.5));
+      x2.setParticlePY(particles[i].py + dx.py *  (data.dt*0.5));
+      x2.setParticlePZ(particles[i].pz + dx.pz *  (data.dt*0.5));
 
 
       // PASSO #2
       // AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
-      gridXX = x2.getParticleX() / data.getDeltaX();
+      gridXX = x2.x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
       else gridX = (int)gridXX;
 
-      gridYY = x2.getParticleY() / data.getDeltaY();
+      gridYY = x2.y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
       else gridY = (int)gridYY;
 
-      gridZZ = x2.getParticleZ() / data.getDeltaZ();
+      gridZZ = x2.z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
       else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSestoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSestoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
 
       calcolaCampoAnalitico1DSuParticella(data, coordinatePrimoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
@@ -400,79 +394,79 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       calcolaCampoAnalitico1DSuParticella(data, coordinateOttavoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
 
-      data.aumentaT(data.getDeltaT() * 0.5);
+      data.aumentaT(data.dt * 0.5);
       FOP = interpolation2D_linear(data, x2, fieldOnGrid);
       fieldOnParticles.push_back(FOP);
 
       fieldOnGrid.clear();
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
       // AGGIORNA dx con i nuovi valori
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[1].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[1].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[1].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[1].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[1].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBx());
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[1].ex + particles[i].q * dx.y * fieldOnParticles[1].bz - particles[i].q * dx.z * fieldOnParticles[1].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[1].ey + particles[i].q * dx.z * fieldOnParticles[1].bx - particles[i].q * dx.x * fieldOnParticles[1].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[1].ez + particles[i].q * dx.x * fieldOnParticles[1].by - particles[i].q * dx.y * fieldOnParticles[1].bx);
 
 
       // AGGIUNGE al dx2 i valori calcolati al secondo passo
-      dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + 2 * dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + 2 * dx.x);
+      dx2.setParticleY(dx2.y + 2 * dx.y);
+      dx2.setParticleZ(dx2.z + 2 * dx.z);
+      dx2.setParticlePX(dx2.px + 2 * dx.px);
+      dx2.setParticlePY(dx2.py + 2 * dx.py);
+      dx2.setParticlePZ(dx2.pz + 2 * dx.pz);
 
-      // RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo  // DA SISTEMARE!!!
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  (data.getDeltaT()*0.5));
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  (data.getDeltaT()*0.5));
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
+      // RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo
+      x2.setParticleX(particles[i].x + dx.x * (data.dt*0.5));
+      x2.setParticleY(particles[i].y + dx.y * (data.dt*0.5));
+      x2.setParticleZ(particles[i].z + dx.z * (data.dt*0.5));
+      x2.setParticlePX(particles[i].px + dx.px *  (data.dt*0.5));
+      x2.setParticlePY(particles[i].py + dx.py *  (data.dt*0.5));
+      x2.setParticlePZ(particles[i].pz + dx.pz *  (data.dt*0.5));
 
 
 
       // PASSO #3
       // CALCOLA campi nella posizione x2 appena aggiornata
-      gridXX = x2.getParticleX() / data.getDeltaX();
+      gridXX = x2.x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = x2.getParticleY() / data.getDeltaY();
+      gridYY = x2.y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = x2.getParticleZ() / data.getDeltaZ();
+      gridZZ = x2.z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSestoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSestoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
 
       calcolaCampoAnalitico1DSuParticella(data, coordinatePrimoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
@@ -497,72 +491,72 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       fieldOnGrid.clear();
 
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
-      // AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[2].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[2].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[2].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[2].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[2].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[2].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[2].getBx());
+      // AGGIORNA dx con i nuovi valori
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[2].ex + particles[i].q * dx.y * fieldOnParticles[2].bz - particles[i].q * dx.z * fieldOnParticles[2].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[2].ey + particles[i].q * dx.z * fieldOnParticles[2].bx - particles[i].q * dx.x * fieldOnParticles[2].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[2].ez + particles[i].q * dx.x * fieldOnParticles[2].by - particles[i].q * dx.y * fieldOnParticles[2].bx);
 
       // AGGIUNGE al dx2 i valori calcolati al terzo passo
-      dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + 2 * dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + 2 * dx.x);
+      dx2.setParticleY(dx2.y + 2 * dx.y);
+      dx2.setParticleZ(dx2.z + 2 * dx.z);
+      dx2.setParticlePX(dx2.px + 2 * dx.px);
+      dx2.setParticlePY(dx2.py + 2 * dx.py);
+      dx2.setParticlePZ(dx2.pz + 2 * dx.pz);
 
-      // RIEMPIE x2 con le posizione avanzate di particles[i]      // DA SISTEMARE!!!
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * data.getDeltaT());
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * data.getDeltaT());
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * data.getDeltaT());
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  data.getDeltaT());
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  data.getDeltaT());
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  data.getDeltaT());
+      // RIEMPIE x2 con le posizione avanzate di particles[i]
+      x2.setParticleX(particles[i].x + dx.x * data.dt);
+      x2.setParticleY(particles[i].y + dx.y * data.dt);
+      x2.setParticleZ(particles[i].z + dx.z * data.dt);
+      x2.setParticlePX(particles[i].px + dx.px *  data.dt);
+      x2.setParticlePY(particles[i].py + dx.py *  data.dt);
+      x2.setParticlePZ(particles[i].pz + dx.pz *  data.dt);
 
 
 
       // PASSO #4
       // AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
-      gridXX = x2.getParticleX() / data.getDeltaX();
+      gridXX = x2.x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
       else gridX = (int)gridXX;
 
-      gridYY = x2.getParticleY() / data.getDeltaY();
+      gridYY = x2.y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
       else gridY = (int)gridYY;
 
-      gridZZ = x2.getParticleZ() / data.getDeltaZ();
+      gridZZ = x2.z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
       else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSestoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSestoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
 
       calcolaCampoAnalitico1DSuParticella(data, coordinatePrimoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
@@ -581,85 +575,83 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
       calcolaCampoAnalitico1DSuParticella(data, coordinateOttavoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
 
-      data.aumentaT(data.getDeltaT() * 0.5);
+      data.aumentaT(data.dt * 0.5);
       FOP = interpolation2D_linear(data, x2, fieldOnGrid);
       fieldOnParticles.push_back(FOP);
 
       fieldOnGrid.clear();
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
-      //AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[3].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[3].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[3].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[3].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[3].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[3].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[3].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[3].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[3].getBx());
+      //AGGIORNA dx con i nuovi valori
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[3].ex + particles[i].q * dx.y * fieldOnParticles[3].bz - particles[i].q * dx.z * fieldOnParticles[3].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[3].ey + particles[i].q * dx.z * fieldOnParticles[3].bx - particles[i].q * dx.x * fieldOnParticles[3].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[3].ez + particles[i].q * dx.x * fieldOnParticles[3].by - particles[i].q * dx.y * fieldOnParticles[3].bx);
 
 
       //AGGIUNGE al dx2 i valori calcolati al terzo passo
-      dx2.setParticleX(dx2.getParticleX() + dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + dx.x);
+      dx2.setParticleY(dx2.y + dx.y);
+      dx2.setParticleZ(dx2.z + dx.z);
+      dx2.setParticlePX(dx2.px + dx.px);
+      dx2.setParticlePY(dx2.py + dx.py);
+      dx2.setParticlePZ(dx2.pz + dx.pz);
 
 
-      particles[i].setParticleX(particles[i].getParticleX() + (data.getDeltaT() / 6.) * dx2.getParticleX());
-      particles[i].setParticleY(particles[i].getParticleY() + (data.getDeltaT() / 6.) * dx2.getParticleY());
-      particles[i].setParticleZ(particles[i].getParticleZ() + (data.getDeltaT() / 6.) * dx2.getParticleZ());
-      particles[i].setParticlePX(particles[i].getParticlePX() + (data.getDeltaT() / 6.) * dx2.getParticlePX());
-      particles[i].setParticlePY(particles[i].getParticlePY() + (data.getDeltaT() / 6.) * dx2.getParticlePY());
-      particles[i].setParticlePZ(particles[i].getParticlePZ() + (data.getDeltaT() / 6.) * dx2.getParticlePZ());
+      particles[i].setParticleX(particles[i].x + (data.dt / 6.) * dx2.x);
+      particles[i].setParticleY(particles[i].y + (data.dt / 6.) * dx2.y);
+      particles[i].setParticleZ(particles[i].z + (data.dt / 6.) * dx2.z);
+      particles[i].setParticlePX(particles[i].px + (data.dt / 6.) * dx2.px);
+      particles[i].setParticlePY(particles[i].py + (data.dt / 6.) * dx2.py);
+      particles[i].setParticlePZ(particles[i].pz + (data.dt / 6.) * dx2.pz);
 
-      particles[i].setParticleCell(data);
-
-      data.aumentaT(-data.getDeltaT());       // faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
+      data.aumentaT(-data.dt);       // faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
                                               // il tempo avanza definitivamente in ciascun ciclo for esterno (sugli nsteps)
 
       //INTEGRALI PRIMI
       potenziale.clear();
-      zeta = particles[i].getParticleX() - C * data.getT();       // non usato nella mia struttura delle equazioni di campo
-      gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
+      zeta = particles[i].x - SPEED_OF_LIGHT * data.t;       // non usato nella mia struttura delle equazioni di campo
+      gamma = sqrt(1 + pow(particles[i].px, 2) + pow(particles[i].py, 2) + pow(particles[i].pz, 2));
 
-      gridXX = particles[i].getParticleX() / data.getDeltaX();
+      gridXX = particles[i].x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = particles[i].getParticleY() / data.getDeltaY();
+      gridYY = particles[i].y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = particles[i].getParticleZ() / data.getDeltaZ();
+      gridZZ = particles[i].z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSestoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSestoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
 
       calcolaPotenzialeAnalitico1DSuParticella(data, coordinatePrimoPuntoGriglia, *FOG);
       fieldOnGrid.push_back(*FOG);
@@ -683,21 +675,21 @@ void evolveRK4_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
       fieldOnGrid.clear();
 
-      I1 = (particles[i].getParticlePY() / (particles[i].getParticleM()*C)) + potenziale[0].getEy();
-      I2 = particles[i].getParticlePZ() / (particles[i].getParticleM()*C);
-      I3 = gamma - particles[i].getParticlePX() / (particles[i].getParticleM()*C);
+      I1 = (particles[i].py / (particles[i].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+      I2 = particles[i].pz / (particles[i].m*SPEED_OF_LIGHT);
+      I3 = gamma - particles[i].px / (particles[i].m*SPEED_OF_LIGHT);
 
       potenziale.clear();
 
       outputstream
         << setw(12) << i + 1 << "\t"
-        << setprecision(14) << setw(16) << particles[i].getParticleX() << "\t"
-        << setw(16) << particles[i].getParticleY() << "\t"
-        << setw(16) << particles[i].getParticleZ() << "\t"
+        << setprecision(14) << setw(16) << particles[i].x << "\t"
+        << setw(16) << particles[i].y << "\t"
+        << setw(16) << particles[i].z << "\t"
         //        << setw(16) << particles[i].getParticleCell() << "\t"
-        << setw(16) << particles[i].getParticlePX() << "\t"
-        << setw(16) << particles[i].getParticlePY() << "\t"
-        << setw(16) << particles[i].getParticlePZ() << "\t"
+        << setw(16) << particles[i].px << "\t"
+        << setw(16) << particles[i].py << "\t"
+        << setw(16) << particles[i].pz << "\t"
         << setw(16) << zeta << "\t"
         << setw(16) << I1 << "\t"
         << setw(16) << I2 << "\t"
@@ -726,25 +718,25 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
   campoSuPunto = new Field[1];
   vector<Field> potenziale;
 
-  for (int j = 0; j < data.getNsteps(); j++)
+  for (int j = 0; j < data.nSteps; j++)
   {
-    data.aumentaT(data.getDeltaT());
-    for (int i = 0; i < data.getNelectrons(); i++)
+    data.aumentaT(data.dt);
+    for (int i = 0; i < data.n_electrons; i++)
     {
 
       fieldOnParticles.clear();       //SVUOTA il vettore dei campi sulle particelle ad ogni ciclo
 
-      gridXX = particles[i].getParticleX() / data.getDeltaX();
+      gridXX = particles[i].x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = particles[i].getParticleY() / data.getDeltaY();
+      gridYY = particles[i].y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = particles[i].getParticleZ() / data.getDeltaZ();
+      gridZZ = particles[i].z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
@@ -755,10 +747,10 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);
 
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));                // primo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));          // secondo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));          // terzo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));                // primo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));          // secondo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));          // terzo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));    // quarto punto
 
       FOP = interpolation2D_linear(data, particles[i], fieldOnGrid);
       fieldOnParticles.push_back(FOP);
@@ -766,43 +758,43 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       fieldOnGrid.clear();
 
 
-      gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(particles[i].px, 2) + pow(particles[i].py, 2) + pow(particles[i].pz, 2));
 
 
       // PASSO #1
       //RIEMPIE dx = vx, vy, vz, Fx, Fy, Fz
-      dx.setParticleX(particles[i].getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(particles[i].getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(particles[i].getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[0].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[0].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[0].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[0].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[0].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[0].getBx());
+      dx.setParticleX(particles[i].px / (gamma * particles[i].m));
+      dx.setParticleY(particles[i].py / (gamma * particles[i].m));
+      dx.setParticleZ(particles[i].pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[0].ex + particles[i].q * dx.y * fieldOnParticles[0].bz - particles[i].q * dx.z * fieldOnParticles[0].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[0].ey + particles[i].q * dx.z * fieldOnParticles[0].bx - particles[i].q * dx.x * fieldOnParticles[0].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[0].ez + particles[i].q * dx.x * fieldOnParticles[0].by - particles[i].q * dx.y * fieldOnParticles[0].bx);
 
       //RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
       dx2 = dx;
 
       //RIEMPIE x2 con le posizioni avanzate di particles[i] dopo il primo passo
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));      // E LE FORZE???
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  (data.getDeltaT()*0.5));
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  (data.getDeltaT()*0.5));
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
+      x2.setParticleX(particles[i].x + dx.x * (data.dt*0.5));
+      x2.setParticleY(particles[i].y + dx.y * (data.dt*0.5));
+      x2.setParticleZ(particles[i].z + dx.z * (data.dt*0.5));
+      x2.setParticlePX(particles[i].px + dx.px *  (data.dt*0.5));
+      x2.setParticlePY(particles[i].py + dx.py *  (data.dt*0.5));
+      x2.setParticlePZ(particles[i].pz + dx.pz *  (data.dt*0.5));
 
 
       // PASSO #2
       //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
-      gridXX = x2.getParticleX() / data.getDeltaX();
+      gridXX = x2.x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = x2.getParticleY() / data.getDeltaY();
+      gridYY = x2.y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = x2.getParticleZ() / data.getDeltaZ();
+      gridZZ = x2.z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
@@ -811,63 +803,63 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       }
 
 
-      data.aumentaT(data.getDeltaT() * 0.5);
+      data.aumentaT(data.dt * 0.5);
 
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);
 
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));      // terzo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));        // primo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));      // secondo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));      // terzo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));    // quarto punto
 
       FOP = interpolation2D_linear(data, x2, fieldOnGrid);
       fieldOnParticles.push_back(FOP);
 
       fieldOnGrid.clear();
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
       //AGGIORNA dx con i nuovi valori
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[1].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[1].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[1].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[1].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[1].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[1].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[1].getBx());
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[1].ex + particles[i].q * dx.y * fieldOnParticles[1].bz - particles[i].q * dx.z * fieldOnParticles[1].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[1].ey + particles[i].q * dx.z * fieldOnParticles[1].bx - particles[i].q * dx.x * fieldOnParticles[1].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[1].ez + particles[i].q * dx.x * fieldOnParticles[1].by - particles[i].q * dx.y * fieldOnParticles[1].bx);
 
 
       //AGGIUNGE al dx2 i valori calcolati al secondo passo
-      dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + 2 * dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + 2 * dx.x);
+      dx2.setParticleY(dx2.y + 2 * dx.y);
+      dx2.setParticleZ(dx2.z + 2 * dx.z);
+      dx2.setParticlePX(dx2.px + 2 * dx.px);
+      dx2.setParticlePY(dx2.py + 2 * dx.py);
+      dx2.setParticlePZ(dx2.pz + 2 * dx.pz);
 
-      //RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo  // DA SISTEMARE!!!
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  (data.getDeltaT()*0.5));
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  (data.getDeltaT()*0.5));
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
+      //RIEMPIE x2 con le posizione avanzate di particles[i] dopo il secondo passo
+      x2.setParticleX(particles[i].x + dx.x * (data.dt*0.5));
+      x2.setParticleY(particles[i].y + dx.y * (data.dt*0.5));
+      x2.setParticleZ(particles[i].z + dx.z * (data.dt*0.5));
+      x2.setParticlePX(particles[i].px + dx.px *  (data.dt*0.5));
+      x2.setParticlePY(particles[i].py + dx.py *  (data.dt*0.5));
+      x2.setParticlePZ(particles[i].pz + dx.pz *  (data.dt*0.5));
 
 
 
       // PASSO #3
       //CALCOLA campi nella posizione x2 appena aggiornata
-      gridXX = x2.getParticleX() / data.getDeltaX();
+      gridXX = x2.x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = x2.getParticleY() / data.getDeltaY();
+      gridYY = x2.y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = x2.getParticleZ() / data.getDeltaZ();
+      gridZZ = x2.z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
@@ -878,10 +870,10 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
       //      riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);   // non e` necessario ricalcolarlo perche' il tempo non e` variato
 
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));      // terzo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));        // primo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));      // secondo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));      // terzo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));    // quarto punto
 
       FOP = interpolation2D_linear(data, x2, fieldOnGrid);
       fieldOnParticles.push_back(FOP);
@@ -889,45 +881,45 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       fieldOnGrid.clear();
 
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
-      //AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[2].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[2].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[2].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[2].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[2].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[2].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[2].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[2].getBx());
+      //AGGIORNA dx con i nuovi valori
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[2].ex + particles[i].q * dx.y * fieldOnParticles[2].bz - particles[i].q * dx.z * fieldOnParticles[2].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[2].ey + particles[i].q * dx.z * fieldOnParticles[2].bx - particles[i].q * dx.x * fieldOnParticles[2].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[2].ez + particles[i].q * dx.x * fieldOnParticles[2].by - particles[i].q * dx.y * fieldOnParticles[2].bx);
 
       //AGGIUNGE al dx2 i valori calcolati al terzo passo
-      dx2.setParticleX(dx2.getParticleX() + 2 * dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + 2 * dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + 2 * dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + 2 * dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + 2 * dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + 2 * dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + 2 * dx.x);
+      dx2.setParticleY(dx2.y + 2 * dx.y);
+      dx2.setParticleZ(dx2.z + 2 * dx.z);
+      dx2.setParticlePX(dx2.px + 2 * dx.px);
+      dx2.setParticlePY(dx2.py + 2 * dx.py);
+      dx2.setParticlePZ(dx2.pz + 2 * dx.pz);
 
-      //RIEMPIE x2 con le posizione avanzate di particles[i]      // DA SISTEMARE!!!
-      x2.setParticleX(particles[i].getParticleX() + dx.getParticleX() * data.getDeltaT());
-      x2.setParticleY(particles[i].getParticleY() + dx.getParticleY() * data.getDeltaT());
-      x2.setParticleZ(particles[i].getParticleZ() + dx.getParticleZ() * data.getDeltaT());
-      x2.setParticlePX(particles[i].getParticlePX() + dx.getParticlePX() *  data.getDeltaT());
-      x2.setParticlePY(particles[i].getParticlePY() + dx.getParticlePY() *  data.getDeltaT());
-      x2.setParticlePZ(particles[i].getParticlePZ() + dx.getParticlePZ() *  data.getDeltaT());
+      //RIEMPIE x2 con le posizione avanzate di particles[i]
+      x2.setParticleX(particles[i].x + dx.x * data.dt);
+      x2.setParticleY(particles[i].y + dx.y * data.dt);
+      x2.setParticleZ(particles[i].z + dx.z * data.dt);
+      x2.setParticlePX(particles[i].px + dx.px *  data.dt);
+      x2.setParticlePY(particles[i].py + dx.py *  data.dt);
+      x2.setParticlePZ(particles[i].pz + dx.pz *  data.dt);
 
 
 
       // PASSO #4
       //AVANZA TEMPO DI deltaT/2 e calcola campi nella posizione x2
-      gridXX = x2.getParticleX() / data.getDeltaX();
+      gridXX = x2.x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
       else gridX = (int)gridXX;
 
-      gridYY = x2.getParticleY() / data.getDeltaY();
+      gridYY = x2.y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
       else gridY = (int)gridYY;
 
-      gridZZ = x2.getParticleZ() / data.getDeltaZ();
+      gridZZ = x2.z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
       else gridZ = (int)gridZZ;
 
@@ -937,69 +929,67 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
         return;
       }
 
-      data.aumentaT(data.getDeltaT() * 0.5);
+      data.aumentaT(data.dt * 0.5);
 
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);
 
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));      // terzo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));        // primo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));      // secondo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));      // terzo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));    // quarto punto
 
       FOP = interpolation2D_linear(data, x2, fieldOnGrid);
       fieldOnParticles.push_back(FOP);
 
       fieldOnGrid.clear();
 
-      gamma = sqrt(1 + pow(x2.getParticlePX(), 2) + pow(x2.getParticlePY(), 2) + pow(x2.getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(x2.px, 2) + pow(x2.py, 2) + pow(x2.pz, 2));
 
-      //AGGIORNA dx con i nuovi valori  DA SISTEMARE!!!!!
-      dx.setParticleX(x2.getParticlePX() / (gamma * particles[i].getParticleM()));
-      dx.setParticleY(x2.getParticlePY() / (gamma * particles[i].getParticleM()));
-      dx.setParticleZ(x2.getParticlePZ() / (gamma * particles[i].getParticleM()));
-      dx.setParticlePX(particles[i].getParticleQ() * fieldOnParticles[3].getEx() + particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[3].getBz() - particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[3].getBy());  //CONTROLLARE I SEGNI!!!!
-      dx.setParticlePY(particles[i].getParticleQ() * fieldOnParticles[3].getEy() + particles[i].getParticleQ() * dx.getParticleZ() * fieldOnParticles[3].getBx() - particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[3].getBz());
-      dx.setParticlePZ(particles[i].getParticleQ() * fieldOnParticles[3].getEz() + particles[i].getParticleQ() * dx.getParticleX() * fieldOnParticles[3].getBy() - particles[i].getParticleQ() * dx.getParticleY() * fieldOnParticles[3].getBx());
+      //AGGIORNA dx con i nuovi valori
+      dx.setParticleX(x2.px / (gamma * particles[i].m));
+      dx.setParticleY(x2.py / (gamma * particles[i].m));
+      dx.setParticleZ(x2.pz / (gamma * particles[i].m));
+      dx.setParticlePX(particles[i].q * fieldOnParticles[3].ex + particles[i].q * dx.y * fieldOnParticles[3].bz - particles[i].q * dx.z * fieldOnParticles[3].by);
+      dx.setParticlePY(particles[i].q * fieldOnParticles[3].ey + particles[i].q * dx.z * fieldOnParticles[3].bx - particles[i].q * dx.x * fieldOnParticles[3].bz);
+      dx.setParticlePZ(particles[i].q * fieldOnParticles[3].ez + particles[i].q * dx.x * fieldOnParticles[3].by - particles[i].q * dx.y * fieldOnParticles[3].bx);
 
 
       //AGGIUNGE al dx2 i valori calcolati al terzo passo
-      dx2.setParticleX(dx2.getParticleX() + dx.getParticleX());
-      dx2.setParticleY(dx2.getParticleY() + dx.getParticleY());
-      dx2.setParticleZ(dx2.getParticleZ() + dx.getParticleZ());
-      dx2.setParticlePX(dx2.getParticlePX() + dx.getParticlePX());
-      dx2.setParticlePY(dx2.getParticlePY() + dx.getParticlePY());
-      dx2.setParticlePZ(dx2.getParticlePZ() + dx.getParticlePZ());
+      dx2.setParticleX(dx2.x + dx.x);
+      dx2.setParticleY(dx2.y + dx.y);
+      dx2.setParticleZ(dx2.z + dx.z);
+      dx2.setParticlePX(dx2.px + dx.px);
+      dx2.setParticlePY(dx2.py + dx.py);
+      dx2.setParticlePZ(dx2.pz + dx.pz);
 
 
-      particles[i].setParticleX(particles[i].getParticleX() + (data.getDeltaT() / 6.) * dx2.getParticleX());
-      particles[i].setParticleY(particles[i].getParticleY() + (data.getDeltaT() / 6.) * dx2.getParticleY());
-      particles[i].setParticleZ(particles[i].getParticleZ() + (data.getDeltaT() / 6.) * dx2.getParticleZ());
-      particles[i].setParticlePX(particles[i].getParticlePX() + (data.getDeltaT() / 6.) * dx2.getParticlePX());
-      particles[i].setParticlePY(particles[i].getParticlePY() + (data.getDeltaT() / 6.) * dx2.getParticlePY());
-      particles[i].setParticlePZ(particles[i].getParticlePZ() + (data.getDeltaT() / 6.) * dx2.getParticlePZ());
+      particles[i].setParticleX(particles[i].x + (data.dt / 6.) * dx2.x);
+      particles[i].setParticleY(particles[i].y + (data.dt / 6.) * dx2.y);
+      particles[i].setParticleZ(particles[i].z + (data.dt / 6.) * dx2.z);
+      particles[i].setParticlePX(particles[i].px + (data.dt / 6.) * dx2.px);
+      particles[i].setParticlePY(particles[i].py + (data.dt / 6.) * dx2.py);
+      particles[i].setParticlePZ(particles[i].pz + (data.dt / 6.) * dx2.pz);
 
-      particles[i].setParticleCell(data);
-
-      data.aumentaT(-data.getDeltaT());       //faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
+      data.aumentaT(-data.dt);       //faccio tornare il tempo indietro cosi` gli altri elettroni di questo step non hanno il tempo gia` avanzato
                               //il tempo avanza definitivamente in ciascun ciclo for esterno (sugli nsteps)
 
       //INTEGRALI PRIMI da sistemare perche' calcolano il potenziale sulla particella e non sulla griglia e poi interpolando
       potenziale.clear();
-      zeta = particles[i].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
-      gamma = sqrt(1 + pow(particles[i].getParticlePX(), 2) + pow(particles[i].getParticlePY(), 2) + pow(particles[i].getParticlePZ(), 2));
+      zeta = particles[i].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
+      gamma = sqrt(1 + pow(particles[i].px, 2) + pow(particles[i].py, 2) + pow(particles[i].pz, 2));
 
-      gridXX = particles[i].getParticleX() / data.getDeltaX();
+      gridXX = particles[i].x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = particles[i].getParticleY() / data.getDeltaY();
+      gridYY = particles[i].y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = particles[i].getParticleZ() / data.getDeltaZ();
+      gridZZ = particles[i].z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
       if (gridX < 0 || gridY < 0 || gridZ < 0)
       {
@@ -1010,32 +1000,32 @@ void evolveRK4_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConPotenzialeAnalitico1D(data, campoSuPuntiGriglia);
 
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));                // primo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));          // secondo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));          // terzo punto
-      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));                // primo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));          // secondo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));          // terzo punto
+      fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));    // quarto punto
 
       FOP = interpolation2D_linear(data, particles[i], fieldOnGrid);
       potenziale.push_back(FOP);
 
       fieldOnGrid.clear();
 
-      I1 = (particles[i].getParticlePY() / (particles[i].getParticleM()*C)) + potenziale[0].getEy();
-      I2 = particles[i].getParticlePZ() / (particles[i].getParticleM()*C);
-      I3 = gamma - particles[i].getParticlePX() / (particles[i].getParticleM()*C);
+      I1 = (particles[i].py / (particles[i].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+      I2 = particles[i].pz / (particles[i].m*SPEED_OF_LIGHT);
+      I3 = gamma - particles[i].px / (particles[i].m*SPEED_OF_LIGHT);
 
 
       outputstream
         << setw(12) << i + 1 << "\t"
-        << setprecision(14) << setw(16) << particles[i].getParticleX() << "\t"
-        << setw(16) << particles[i].getParticleY() << "\t"
-        << setw(16) << particles[i].getParticleZ() << "\t"
+        << setprecision(14) << setw(16) << particles[i].x << "\t"
+        << setw(16) << particles[i].y << "\t"
+        << setw(16) << particles[i].z << "\t"
         //<< setw(16) << particles[i].getParticleCell() << "\t"
-        << setw(16) << particles[i].getParticlePX() << "\t"
-        << setw(16) << particles[i].getParticlePY() << "\t"
-        << setw(16) << particles[i].getParticlePZ() << "\t"
+        << setw(16) << particles[i].px << "\t"
+        << setw(16) << particles[i].py << "\t"
+        << setw(16) << particles[i].pz << "\t"
         << setw(16) << zeta << "\t"
-        << setw(16) << potenziale[0].getEy() << "\t"
+        << setw(16) << potenziale[0].ey << "\t"
         << setw(16) << I1 << "\t"
         << setw(16) << I2 << "\t"
         << setw(16) << I3 << endl;
@@ -1060,31 +1050,31 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
   double gridd;
   int grid;
 
-  gridd = particle.getParticleX() / data.getDeltaX();
+  gridd = particle.x / data.deltaX;
   if (gridd < 0) grid = ((int)gridd) - 1;
   else grid = (int)gridd;
-  relativeCoord.setParticleX(particle.getParticleX() - data.getDeltaX()*grid);
+  relativeCoord.setParticleX(particle.x - data.deltaX*grid);
 
-  gridd = particle.getParticleY() / data.getDeltaY();
+  gridd = particle.y / data.deltaY;
   if (gridd < 0) grid = ((int)gridd) - 1;
   else grid = (int)gridd;
-  relativeCoord.setParticleY(particle.getParticleY() - data.getDeltaY()*grid);
+  relativeCoord.setParticleY(particle.y - data.deltaY*grid);
 
-  gridd = particle.getParticleZ() / data.getDeltaZ();
+  gridd = particle.z / data.deltaZ;
   if (gridd < 0) grid = ((int)gridd) - 1;
   else grid = (int)gridd;
-  relativeCoord.setParticleZ(particle.getParticleZ() - data.getDeltaZ()*grid);
+  relativeCoord.setParticleZ(particle.z - data.deltaZ*grid);
 
   Field tempField;
 
-  double x2_vsFirstGridPoint = (pow(relativeCoord.getParticleX(), 2));
-  double y2_vsFirstGridPoint = (pow(relativeCoord.getParticleY(), 2));
-  double z2_vsFirstGridPoint = (pow(relativeCoord.getParticleZ(), 2));
+  double x2_vsFirstGridPoint = (pow(relativeCoord.x, 2));
+  double y2_vsFirstGridPoint = (pow(relativeCoord.y, 2));
+  double z2_vsFirstGridPoint = (pow(relativeCoord.z, 2));
   double pos2_vsFirstGridPoint = x2_vsFirstGridPoint + y2_vsFirstGridPoint + z2_vsFirstGridPoint;
 
-  double x2_vsSecondGridPoint = (pow(data.getDeltaX() - relativeCoord.getParticleX(), 2));
-  double y2_vsSecondGridPoint = (pow(relativeCoord.getParticleY(), 2));
-  double z2_vsSecondGridPoint = (pow(relativeCoord.getParticleZ(), 2));
+  double x2_vsSecondGridPoint = (pow(data.deltaX - relativeCoord.x, 2));
+  double y2_vsSecondGridPoint = (pow(relativeCoord.y, 2));
+  double z2_vsSecondGridPoint = (pow(relativeCoord.z, 2));
   double pos2_vsSecondGridPoint = x2_vsSecondGridPoint + y2_vsSecondGridPoint + z2_vsSecondGridPoint;
 
   double normal = pos2_vsFirstGridPoint + pos2_vsSecondGridPoint;
@@ -1117,14 +1107,14 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
 
   //  if (numberOfVertices == 4 || numberOfVertices == 8)
   //  {
-  x2_vsThirdGridPoint = (pow(relativeCoord.getParticleX(), 2));
-  y2_vsThirdGridPoint = (pow(data.getDeltaY() - relativeCoord.getParticleZ(), 2));
-  z2_vsThirdGridPoint = (pow(relativeCoord.getParticleZ(), 2));
+  x2_vsThirdGridPoint = (pow(relativeCoord.x, 2));
+  y2_vsThirdGridPoint = (pow(data.deltaY - relativeCoord.z, 2));
+  z2_vsThirdGridPoint = (pow(relativeCoord.z, 2));
   pos2_vsThirdGridPoint = x2_vsThirdGridPoint + y2_vsThirdGridPoint + z2_vsThirdGridPoint;
 
-  x2_vsFourthGridPoint = (pow(data.getDeltaX() - relativeCoord.getParticleX(), 2));
-  y2_vsFourthGridPoint = (pow(data.getDeltaY() - relativeCoord.getParticleY(), 2));
-  z2_vsFourthGridPoint = (pow(relativeCoord.getParticleZ(), 2));
+  x2_vsFourthGridPoint = (pow(data.deltaX - relativeCoord.x, 2));
+  y2_vsFourthGridPoint = (pow(data.deltaY - relativeCoord.y, 2));
+  z2_vsFourthGridPoint = (pow(relativeCoord.z, 2));
   pos2_vsFourthGridPoint = x2_vsFourthGridPoint + y2_vsFourthGridPoint + z2_vsFourthGridPoint;
 
   normal += pos2_vsThirdGridPoint + pos2_vsFourthGridPoint;
@@ -1132,24 +1122,24 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
 
   //  if (numberOfVertices == 8)
   //  {
-  x2_vsFifthGridPoint = (pow(relativeCoord.getParticleX(), 2));
-  y2_vsFifthGridPoint = (pow(relativeCoord.getParticleY(), 2));
-  z2_vsFifthGridPoint = (pow(data.getDeltaZ() - relativeCoord.getParticleZ(), 2));
+  x2_vsFifthGridPoint = (pow(relativeCoord.x, 2));
+  y2_vsFifthGridPoint = (pow(relativeCoord.y, 2));
+  z2_vsFifthGridPoint = (pow(data.deltaZ - relativeCoord.z, 2));
   pos2_vsFifthGridPoint = x2_vsFifthGridPoint + y2_vsFifthGridPoint + z2_vsFifthGridPoint;
 
-  x2_vsSixthGridPoint = (pow(data.getDeltaX() - relativeCoord.getParticleX(), 2));
-  y2_vsSixthGridPoint = (pow(relativeCoord.getParticleY(), 2));
-  z2_vsSixthGridPoint = (pow(data.getDeltaZ() - relativeCoord.getParticleZ(), 2));
+  x2_vsSixthGridPoint = (pow(data.deltaX - relativeCoord.x, 2));
+  y2_vsSixthGridPoint = (pow(relativeCoord.y, 2));
+  z2_vsSixthGridPoint = (pow(data.deltaZ - relativeCoord.z, 2));
   pos2_vsSixthGridPoint = x2_vsSixthGridPoint + y2_vsSixthGridPoint + z2_vsSixthGridPoint;
 
-  x2_vsSeventhGridPoint = (pow(relativeCoord.getParticleX(), 2));
-  y2_vsSeventhGridPoint = (pow(data.getDeltaY() - relativeCoord.getParticleZ(), 2));
-  z2_vsSeventhGridPoint = (pow(data.getDeltaZ() - relativeCoord.getParticleZ(), 2));
+  x2_vsSeventhGridPoint = (pow(relativeCoord.x, 2));
+  y2_vsSeventhGridPoint = (pow(data.deltaY - relativeCoord.z, 2));
+  z2_vsSeventhGridPoint = (pow(data.deltaZ - relativeCoord.z, 2));
   pos2_vsSeventhGridPoint = x2_vsSeventhGridPoint + y2_vsSeventhGridPoint + z2_vsSeventhGridPoint;
 
-  x2_vsEighthGridPoint = (pow(data.getDeltaX() - relativeCoord.getParticleX(), 2));
-  y2_vsEighthGridPoint = (pow(data.getDeltaY() - relativeCoord.getParticleY(), 2));
-  z2_vsEighthGridPoint = (pow(data.getDeltaZ() - relativeCoord.getParticleZ(), 2));
+  x2_vsEighthGridPoint = (pow(data.deltaX - relativeCoord.x, 2));
+  y2_vsEighthGridPoint = (pow(data.deltaY - relativeCoord.y, 2));
+  z2_vsEighthGridPoint = (pow(data.deltaZ - relativeCoord.z, 2));
   pos2_vsEighthGridPoint = x2_vsEighthGridPoint + y2_vsEighthGridPoint + z2_vsEighthGridPoint;
 
   normal += pos2_vsFifthGridPoint + pos2_vsSixthGridPoint + pos2_vsSeventhGridPoint + pos2_vsEighthGridPoint;
@@ -1165,19 +1155,19 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
   double pos_vsFirstGridPoint = sqrt(pos2_vsFirstGridPoint);
   double pos_vsSecondGridPoint = sqrt(pos2_vsSecondGridPoint);
 
-  double fieldX_0 = FOG[0].getEx() * pos_vsFirstGridPoint;
-  double fieldX_1 = FOG[1].getEx() * pos_vsSecondGridPoint;
-  double fieldY_0 = FOG[0].getEy() * pos_vsFirstGridPoint;
-  double fieldY_1 = FOG[1].getEy() * pos_vsSecondGridPoint;
-  double fieldZ_0 = FOG[0].getEz() * pos_vsFirstGridPoint;
-  double fieldZ_1 = FOG[1].getEz() * pos_vsSecondGridPoint;
+  double fieldX_0 = FOG[0].ex * pos_vsFirstGridPoint;
+  double fieldX_1 = FOG[1].ex * pos_vsSecondGridPoint;
+  double fieldY_0 = FOG[0].ey * pos_vsFirstGridPoint;
+  double fieldY_1 = FOG[1].ey * pos_vsSecondGridPoint;
+  double fieldZ_0 = FOG[0].ez * pos_vsFirstGridPoint;
+  double fieldZ_1 = FOG[1].ez * pos_vsSecondGridPoint;
 
-  double fieldBX_0 = FOG[0].getBx() * pos_vsFirstGridPoint;
-  double fieldBX_1 = FOG[1].getBx() * pos_vsSecondGridPoint;
-  double fieldBY_0 = FOG[0].getBy() * pos_vsFirstGridPoint;
-  double fieldBY_1 = FOG[1].getBy() * pos_vsSecondGridPoint;
-  double fieldBZ_0 = FOG[0].getBz() * pos_vsFirstGridPoint;
-  double fieldBZ_1 = FOG[1].getBz() * pos_vsSecondGridPoint;
+  double fieldBX_0 = FOG[0].bx * pos_vsFirstGridPoint;
+  double fieldBX_1 = FOG[1].bx * pos_vsSecondGridPoint;
+  double fieldBY_0 = FOG[0].by * pos_vsFirstGridPoint;
+  double fieldBY_1 = FOG[1].by * pos_vsSecondGridPoint;
+  double fieldBZ_0 = FOG[0].bz * pos_vsFirstGridPoint;
+  double fieldBZ_1 = FOG[1].bz * pos_vsSecondGridPoint;
 
   //  if (numberOfVertices == 2)
   //  {
@@ -1197,25 +1187,25 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
       double pos_vsThirdGridPoint =   sqrt(pos2_vsThirdGridPoint);
       double pos_vsFourthGridPoint =   sqrt(pos2_vsFourthGridPoint);
 
-      double fieldX_2 = FOG[2].getEx() * pos_vsThirdGridPoint;
-      double fieldX_3 = FOG[3].getEx() * pos_vsFourthGridPoint;
+      double fieldX_2 = FOG[2].ex * pos_vsThirdGridPoint;
+      double fieldX_3 = FOG[3].ex * pos_vsFourthGridPoint;
       tempField.setEx(fieldX_0 + fieldX_1 + fieldX_2 + fieldX_3);
-      double fieldBX_2 = FOG[2].getBx() * pos_vsThirdGridPoint;
-      double fieldBX_3 = FOG[3].getBx() * pos_vsFourthGridPoint;
+      double fieldBX_2 = FOG[2].bx * pos_vsThirdGridPoint;
+      double fieldBX_3 = FOG[3].bx * pos_vsFourthGridPoint;
       tempField.setBx(fieldBX_0 + fieldBX_1 + fieldBX_2 + fieldBX_3);
 
-      double fieldY_2 = FOG[2].getEy() * pos_vsThirdGridPoint;
-      double fieldY_3 = FOG[3].getEy() * pos_vsFourthGridPoint;
+      double fieldY_2 = FOG[2].ey * pos_vsThirdGridPoint;
+      double fieldY_3 = FOG[3].ey * pos_vsFourthGridPoint;
       tempField.setEy(fieldY_0 + fieldY_1 + fieldY_2 + fieldY_3);
-      double fieldBY_2 = FOG[2].getBy() * pos_vsThirdGridPoint;
-      double fieldBY_3 = FOG[3].getBy() * pos_vsFourthGridPoint;
+      double fieldBY_2 = FOG[2].by * pos_vsThirdGridPoint;
+      double fieldBY_3 = FOG[3].by * pos_vsFourthGridPoint;
       tempField.setBy(fieldBY_0 + fieldBY_1 + fieldBY_2 + fieldBY_3);
 
-      double fieldZ_2 = FOG[2].getEz() * pos_vsThirdGridPoint;
-      double fieldZ_3 = FOG[3].getEz() * pos_vsFourthGridPoint;
+      double fieldZ_2 = FOG[2].ez * pos_vsThirdGridPoint;
+      double fieldZ_3 = FOG[3].ez * pos_vsFourthGridPoint;
       tempField.setEz(fieldZ_0 + fieldZ_1 + fieldZ_2 + fieldZ_3);
-      double fieldBZ_2 = FOG[2].getBz() * pos_vsThirdGridPoint;
-      double fieldBZ_3 = FOG[3].getBz() * pos_vsFourthGridPoint;
+      double fieldBZ_2 = FOG[2].bz * pos_vsThirdGridPoint;
+      double fieldBZ_3 = FOG[3].bz * pos_vsFourthGridPoint;
       tempField.setBz(fieldBZ_0 + fieldBZ_1 + fieldBZ_2 + fieldBZ_3);
     }
   */
@@ -1235,49 +1225,49 @@ Field obtainFOP(Data data, Particle particle, vector<Field> &FOG)     // Difetto
   double pos_vsSeventhGridPoint = sqrt(pos2_vsSeventhGridPoint);
   double pos_vsEighthGridPoint = sqrt(pos2_vsEighthGridPoint);
 
-  double fieldX_2 = FOG[2].getEx() * pos_vsThirdGridPoint;
-  double fieldX_3 = FOG[3].getEx() * pos_vsFourthGridPoint;
-  double fieldX_4 = FOG[4].getEx() * pos_vsFifthGridPoint;
-  double fieldX_5 = FOG[5].getEx() * pos_vsSixthGridPoint;
-  double fieldX_6 = FOG[6].getEx() * pos_vsSeventhGridPoint;
-  double fieldX_7 = FOG[7].getEx() * pos_vsEighthGridPoint;
+  double fieldX_2 = FOG[2].ex * pos_vsThirdGridPoint;
+  double fieldX_3 = FOG[3].ex * pos_vsFourthGridPoint;
+  double fieldX_4 = FOG[4].ex * pos_vsFifthGridPoint;
+  double fieldX_5 = FOG[5].ex * pos_vsSixthGridPoint;
+  double fieldX_6 = FOG[6].ex * pos_vsSeventhGridPoint;
+  double fieldX_7 = FOG[7].ex * pos_vsEighthGridPoint;
   tempField.setEx(fieldX_0 + fieldX_1 + fieldX_2 + fieldX_3 + fieldX_4 + fieldX_5 + fieldX_6 + fieldX_7);
-  double fieldBX_2 = FOG[2].getBx() * pos_vsThirdGridPoint;
-  double fieldBX_3 = FOG[3].getBx() * pos_vsFourthGridPoint;
-  double fieldBX_4 = FOG[4].getBx() * pos_vsFifthGridPoint;
-  double fieldBX_5 = FOG[5].getBx() * pos_vsSixthGridPoint;
-  double fieldBX_6 = FOG[6].getBx() * pos_vsSeventhGridPoint;
-  double fieldBX_7 = FOG[7].getBx() * pos_vsEighthGridPoint;
+  double fieldBX_2 = FOG[2].bx * pos_vsThirdGridPoint;
+  double fieldBX_3 = FOG[3].bx * pos_vsFourthGridPoint;
+  double fieldBX_4 = FOG[4].bx * pos_vsFifthGridPoint;
+  double fieldBX_5 = FOG[5].bx * pos_vsSixthGridPoint;
+  double fieldBX_6 = FOG[6].bx * pos_vsSeventhGridPoint;
+  double fieldBX_7 = FOG[7].bx * pos_vsEighthGridPoint;
   tempField.setBx(fieldBX_0 + fieldBX_1 + fieldBX_2 + fieldBX_3 + fieldBX_4 + fieldBX_5 + fieldBX_6 + fieldBX_7);
 
-  double fieldY_2 = FOG[2].getEy() * pos_vsThirdGridPoint;
-  double fieldY_3 = FOG[3].getEy() * pos_vsFourthGridPoint;
-  double fieldY_4 = FOG[4].getEy() * pos_vsFifthGridPoint;
-  double fieldY_5 = FOG[5].getEy() * pos_vsSixthGridPoint;
-  double fieldY_6 = FOG[6].getEy() * pos_vsSeventhGridPoint;
-  double fieldY_7 = FOG[7].getEy() * pos_vsEighthGridPoint;
+  double fieldY_2 = FOG[2].ey * pos_vsThirdGridPoint;
+  double fieldY_3 = FOG[3].ey * pos_vsFourthGridPoint;
+  double fieldY_4 = FOG[4].ey * pos_vsFifthGridPoint;
+  double fieldY_5 = FOG[5].ey * pos_vsSixthGridPoint;
+  double fieldY_6 = FOG[6].ey * pos_vsSeventhGridPoint;
+  double fieldY_7 = FOG[7].ey * pos_vsEighthGridPoint;
   tempField.setEy(fieldY_0 + fieldY_1 + fieldY_2 + fieldY_3 + fieldY_4 + fieldY_5 + fieldY_6 + fieldY_7);
-  double fieldBY_2 = FOG[2].getBy() * pos_vsThirdGridPoint;
-  double fieldBY_3 = FOG[3].getBy() * pos_vsFourthGridPoint;
-  double fieldBY_4 = FOG[4].getBy() * pos_vsFifthGridPoint;
-  double fieldBY_5 = FOG[5].getBy() * pos_vsSixthGridPoint;
-  double fieldBY_6 = FOG[6].getBy() * pos_vsSeventhGridPoint;
-  double fieldBY_7 = FOG[7].getBy() * pos_vsEighthGridPoint;
+  double fieldBY_2 = FOG[2].by * pos_vsThirdGridPoint;
+  double fieldBY_3 = FOG[3].by * pos_vsFourthGridPoint;
+  double fieldBY_4 = FOG[4].by * pos_vsFifthGridPoint;
+  double fieldBY_5 = FOG[5].by * pos_vsSixthGridPoint;
+  double fieldBY_6 = FOG[6].by * pos_vsSeventhGridPoint;
+  double fieldBY_7 = FOG[7].by * pos_vsEighthGridPoint;
   tempField.setBy(fieldBY_0 + fieldBY_1 + fieldBY_2 + fieldBY_3 + fieldBY_4 + fieldBY_5 + fieldBY_6 + fieldBY_7);
 
-  double fieldZ_2 = FOG[2].getEz() * pos_vsThirdGridPoint;
-  double fieldZ_3 = FOG[3].getEz() * pos_vsFourthGridPoint;
-  double fieldZ_4 = FOG[4].getEz() * pos_vsFifthGridPoint;
-  double fieldZ_5 = FOG[5].getEz() * pos_vsSixthGridPoint;
-  double fieldZ_6 = FOG[6].getEz() * pos_vsSeventhGridPoint;
-  double fieldZ_7 = FOG[7].getEz() * pos_vsEighthGridPoint;
+  double fieldZ_2 = FOG[2].ez * pos_vsThirdGridPoint;
+  double fieldZ_3 = FOG[3].ez * pos_vsFourthGridPoint;
+  double fieldZ_4 = FOG[4].ez * pos_vsFifthGridPoint;
+  double fieldZ_5 = FOG[5].ez * pos_vsSixthGridPoint;
+  double fieldZ_6 = FOG[6].ez * pos_vsSeventhGridPoint;
+  double fieldZ_7 = FOG[7].ez * pos_vsEighthGridPoint;
   tempField.setEz(fieldZ_0 + fieldZ_1 + fieldZ_2 + fieldZ_3 + fieldZ_4 + fieldZ_5 + fieldZ_6 + fieldZ_7);
-  double fieldBZ_2 = FOG[2].getBz() * pos_vsThirdGridPoint;
-  double fieldBZ_3 = FOG[3].getBz() * pos_vsFourthGridPoint;
-  double fieldBZ_4 = FOG[4].getBz() * pos_vsFifthGridPoint;
-  double fieldBZ_5 = FOG[5].getBz() * pos_vsSixthGridPoint;
-  double fieldBZ_6 = FOG[6].getBz() * pos_vsSeventhGridPoint;
-  double fieldBZ_7 = FOG[7].getBz() * pos_vsEighthGridPoint;
+  double fieldBZ_2 = FOG[2].bz * pos_vsThirdGridPoint;
+  double fieldBZ_3 = FOG[3].bz * pos_vsFourthGridPoint;
+  double fieldBZ_4 = FOG[4].bz * pos_vsFifthGridPoint;
+  double fieldBZ_5 = FOG[5].bz * pos_vsSixthGridPoint;
+  double fieldBZ_6 = FOG[6].bz * pos_vsSeventhGridPoint;
+  double fieldBZ_7 = FOG[7].bz * pos_vsEighthGridPoint;
   tempField.setBz(fieldBZ_0 + fieldBZ_1 + fieldBZ_2 + fieldBZ_3 + fieldBZ_4 + fieldBZ_5 + fieldBZ_6 + fieldBZ_7);
   //  }
 
@@ -1303,57 +1293,57 @@ Field interpolation2D_linear(Data data, Particle position, vector<Field> &values
 
   double gridd;
   int grid = 0;
-  double dx_inv = 1. / data.getDeltaX();
-  double dy_inv = 1. / data.getDeltaY();
+  double dx_inv = 1. / data.deltaX;
+  double dy_inv = 1. / data.deltaY;
 
-  gridd = position.getParticleX() / data.getDeltaX();
+  gridd = position.x / data.deltaX;
   if (gridd < 0) grid = ((int)grid) - 1;
   else grid = (int)gridd;
-  relativeCoord.setParticleX((position.getParticleX() - data.getDeltaX()*grid) * dx_inv);
+  relativeCoord.setParticleX((position.x - data.deltaX*grid) * dx_inv);
 
-  gridd = position.getParticleY() / data.getDeltaY();
+  gridd = position.y / data.deltaY;
   if (gridd < 0) grid = ((int)grid) - 1;
   else grid = (int)gridd;
-  relativeCoord.setParticleY((position.getParticleY() - data.getDeltaY()*grid) * dy_inv);
+  relativeCoord.setParticleY((position.y - data.deltaY*grid) * dy_inv);
 
   relativeCoord.setParticleZ(0.);
 
   Field tempField;
 
-  double weightOnFourthPoint = relativeCoord.getParticleX() * relativeCoord.getParticleY();
-  double weightOnFirstPoint = (1 - relativeCoord.getParticleX()) * (1 - relativeCoord.getParticleY());
-  double weightOnThirdPoint = relativeCoord.getParticleX() * (1 - relativeCoord.getParticleY());
-  double weightOnSecondPoint = (1 - relativeCoord.getParticleX()) * relativeCoord.getParticleY();
+  double weightOnFourthPoint = relativeCoord.x * relativeCoord.y;
+  double weightOnFirstPoint = (1 - relativeCoord.x) * (1 - relativeCoord.y);
+  double weightOnThirdPoint = relativeCoord.x * (1 - relativeCoord.y);
+  double weightOnSecondPoint = (1 - relativeCoord.x) * relativeCoord.y;
 
-  double fieldX_0 = valuesOnGrid[0].getEx() * weightOnFirstPoint;
-  double fieldX_1 = valuesOnGrid[1].getEx() * weightOnSecondPoint;
-  double fieldX_2 = valuesOnGrid[2].getEx() * weightOnThirdPoint;
-  double fieldX_3 = valuesOnGrid[3].getEx() * weightOnFourthPoint;
+  double fieldX_0 = valuesOnGrid[0].ex * weightOnFirstPoint;
+  double fieldX_1 = valuesOnGrid[1].ex * weightOnSecondPoint;
+  double fieldX_2 = valuesOnGrid[2].ex * weightOnThirdPoint;
+  double fieldX_3 = valuesOnGrid[3].ex * weightOnFourthPoint;
 
-  double fieldY_0 = valuesOnGrid[0].getEy() * weightOnFirstPoint;
-  double fieldY_1 = valuesOnGrid[1].getEy() * weightOnSecondPoint;
-  double fieldY_2 = valuesOnGrid[2].getEy() * weightOnThirdPoint;
-  double fieldY_3 = valuesOnGrid[3].getEy() * weightOnFourthPoint;
+  double fieldY_0 = valuesOnGrid[0].ey * weightOnFirstPoint;
+  double fieldY_1 = valuesOnGrid[1].ey * weightOnSecondPoint;
+  double fieldY_2 = valuesOnGrid[2].ey * weightOnThirdPoint;
+  double fieldY_3 = valuesOnGrid[3].ey * weightOnFourthPoint;
 
-  double fieldZ_0 = valuesOnGrid[0].getEz() * weightOnFirstPoint;
-  double fieldZ_1 = valuesOnGrid[1].getEz() * weightOnSecondPoint;
-  double fieldZ_2 = valuesOnGrid[2].getEz() * weightOnThirdPoint;
-  double fieldZ_3 = valuesOnGrid[3].getEz() * weightOnFourthPoint;
+  double fieldZ_0 = valuesOnGrid[0].ez * weightOnFirstPoint;
+  double fieldZ_1 = valuesOnGrid[1].ez * weightOnSecondPoint;
+  double fieldZ_2 = valuesOnGrid[2].ez * weightOnThirdPoint;
+  double fieldZ_3 = valuesOnGrid[3].ez * weightOnFourthPoint;
 
-  double fieldBX_0 = valuesOnGrid[0].getBx() * weightOnFirstPoint;
-  double fieldBX_1 = valuesOnGrid[1].getBx() * weightOnSecondPoint;
-  double fieldBX_2 = valuesOnGrid[2].getBx() * weightOnThirdPoint;
-  double fieldBX_3 = valuesOnGrid[3].getBx() * weightOnFourthPoint;
+  double fieldBX_0 = valuesOnGrid[0].bx * weightOnFirstPoint;
+  double fieldBX_1 = valuesOnGrid[1].bx * weightOnSecondPoint;
+  double fieldBX_2 = valuesOnGrid[2].bx * weightOnThirdPoint;
+  double fieldBX_3 = valuesOnGrid[3].bx * weightOnFourthPoint;
 
-  double fieldBY_0 = valuesOnGrid[0].getBy() * weightOnFirstPoint;
-  double fieldBY_1 = valuesOnGrid[1].getBy() * weightOnSecondPoint;
-  double fieldBY_2 = valuesOnGrid[2].getBy() * weightOnThirdPoint;
-  double fieldBY_3 = valuesOnGrid[3].getBy() * weightOnFourthPoint;
+  double fieldBY_0 = valuesOnGrid[0].by * weightOnFirstPoint;
+  double fieldBY_1 = valuesOnGrid[1].by * weightOnSecondPoint;
+  double fieldBY_2 = valuesOnGrid[2].by * weightOnThirdPoint;
+  double fieldBY_3 = valuesOnGrid[3].by * weightOnFourthPoint;
 
-  double fieldBZ_0 = valuesOnGrid[0].getBz() * weightOnFirstPoint;
-  double fieldBZ_1 = valuesOnGrid[1].getBz() * weightOnSecondPoint;
-  double fieldBZ_2 = valuesOnGrid[2].getBz() * weightOnThirdPoint;
-  double fieldBZ_3 = valuesOnGrid[3].getBz() * weightOnFourthPoint;
+  double fieldBZ_0 = valuesOnGrid[0].bz * weightOnFirstPoint;
+  double fieldBZ_1 = valuesOnGrid[1].bz * weightOnSecondPoint;
+  double fieldBZ_2 = valuesOnGrid[2].bz * weightOnThirdPoint;
+  double fieldBZ_3 = valuesOnGrid[3].bz * weightOnFourthPoint;
 
   tempField.setEx(fieldX_0 + fieldX_1 + fieldX_2 + fieldX_3);
   tempField.setBx(fieldBX_0 + fieldBX_1 + fieldBX_2 + fieldBX_3);
@@ -1379,28 +1369,28 @@ Field interpolation2D_quadratic(Data data, Particle position, vector<Field> &val
 
   double gridd;
   int grid = 0;
-  double dx_inv = 1 / data.getDeltaX();
-  double dy_inv = 1 / data.getDeltaY();
+  double dx_inv = 1 / data.deltaX;
+  double dy_inv = 1 / data.deltaY;
 
-  gridd = (position.getParticleX() / data.getDeltaX()) + 0.5;
+  gridd = (position.x / data.deltaX) + 0.5;
   if (gridd < 0) grid = ((int)grid) - 1;
   else grid = (int)gridd;
-  relativeCoord.setParticleX((position.getParticleX() - data.getDeltaX()*grid) * dx_inv);
+  relativeCoord.setParticleX((position.x - data.deltaX*grid) * dx_inv);
 
-  gridd = (position.getParticleY() / data.getDeltaY()) + 0.5;
+  gridd = (position.y / data.deltaY) + 0.5;
   if (gridd < 0) grid = ((int)grid) - 1;
   else grid = (int)gridd;
-  relativeCoord.setParticleY((position.getParticleY() - data.getDeltaY()*grid) * dy_inv);
+  relativeCoord.setParticleY((position.y - data.deltaY*grid) * dy_inv);
 
   relativeCoord.setParticleZ(0.);
 
 
   Field tempField;
 
-  // DA SISTEMARE!!!
-  double weightOnFirstPoint = 0.75 - pow(relativeCoord.getParticleX(), 2.);
-  double weightOnSecondPoint = 0.5 * (0.25 + pow(relativeCoord.getParticleX(), 2.) + relativeCoord.getParticleX());
-  double weightOnThirdPoint = 0.5 * (0.25 + pow(relativeCoord.getParticleX(), 2.) - relativeCoord.getParticleX());
+
+  double weightOnFirstPoint = 0.75 - pow(relativeCoord.x, 2.);
+  double weightOnSecondPoint = 0.5 * (0.25 + pow(relativeCoord.x, 2.) + relativeCoord.x);
+  double weightOnThirdPoint = 0.5 * (0.25 + pow(relativeCoord.x, 2.) - relativeCoord.x);
   double weightOnFourthPoint = 0.;
   double weightOnFifthPoint = 0.;
   double weightOnSixthPoint = 0.;
@@ -1408,65 +1398,65 @@ Field interpolation2D_quadratic(Data data, Particle position, vector<Field> &val
   double weightOnEighthPoint = 0.;
   double weightOnNinethPoint = 0.;
 
-  double fieldX_0 = valuesOnGrid[0].getEx() * weightOnFirstPoint;
-  double fieldX_1 = valuesOnGrid[1].getEx() * weightOnSecondPoint;
-  double fieldX_2 = valuesOnGrid[2].getEx() * weightOnThirdPoint;
-  double fieldX_3 = valuesOnGrid[3].getEx() * weightOnFourthPoint;
-  double fieldX_4 = valuesOnGrid[4].getEx() * weightOnFifthPoint;
-  double fieldX_5 = valuesOnGrid[5].getEx() * weightOnSixthPoint;
-  double fieldX_6 = valuesOnGrid[6].getEx() * weightOnSeventhPoint;
-  double fieldX_7 = valuesOnGrid[7].getEx() * weightOnEighthPoint;
-  double fieldX_8 = valuesOnGrid[8].getEx() * weightOnNinethPoint;
+  double fieldX_0 = valuesOnGrid[0].ex * weightOnFirstPoint;
+  double fieldX_1 = valuesOnGrid[1].ex * weightOnSecondPoint;
+  double fieldX_2 = valuesOnGrid[2].ex * weightOnThirdPoint;
+  double fieldX_3 = valuesOnGrid[3].ex * weightOnFourthPoint;
+  double fieldX_4 = valuesOnGrid[4].ex * weightOnFifthPoint;
+  double fieldX_5 = valuesOnGrid[5].ex * weightOnSixthPoint;
+  double fieldX_6 = valuesOnGrid[6].ex * weightOnSeventhPoint;
+  double fieldX_7 = valuesOnGrid[7].ex * weightOnEighthPoint;
+  double fieldX_8 = valuesOnGrid[8].ex * weightOnNinethPoint;
 
-  double fieldY_0 = valuesOnGrid[0].getEy() * weightOnFirstPoint;
-  double fieldY_1 = valuesOnGrid[1].getEy() * weightOnSecondPoint;
-  double fieldY_2 = valuesOnGrid[2].getEy() * weightOnThirdPoint;
-  double fieldY_3 = valuesOnGrid[3].getEy() * weightOnFourthPoint;
-  double fieldY_4 = valuesOnGrid[4].getEy() * weightOnFifthPoint;
-  double fieldY_5 = valuesOnGrid[5].getEy() * weightOnSixthPoint;
-  double fieldY_6 = valuesOnGrid[6].getEy() * weightOnSeventhPoint;
-  double fieldY_7 = valuesOnGrid[7].getEy() * weightOnEighthPoint;
-  double fieldY_8 = valuesOnGrid[8].getEy() * weightOnNinethPoint;
+  double fieldY_0 = valuesOnGrid[0].ey * weightOnFirstPoint;
+  double fieldY_1 = valuesOnGrid[1].ey * weightOnSecondPoint;
+  double fieldY_2 = valuesOnGrid[2].ey * weightOnThirdPoint;
+  double fieldY_3 = valuesOnGrid[3].ey * weightOnFourthPoint;
+  double fieldY_4 = valuesOnGrid[4].ey * weightOnFifthPoint;
+  double fieldY_5 = valuesOnGrid[5].ey * weightOnSixthPoint;
+  double fieldY_6 = valuesOnGrid[6].ey * weightOnSeventhPoint;
+  double fieldY_7 = valuesOnGrid[7].ey * weightOnEighthPoint;
+  double fieldY_8 = valuesOnGrid[8].ey * weightOnNinethPoint;
 
-  double fieldZ_0 = valuesOnGrid[0].getEz() * weightOnFirstPoint;
-  double fieldZ_1 = valuesOnGrid[1].getEz() * weightOnSecondPoint;
-  double fieldZ_2 = valuesOnGrid[2].getEz() * weightOnThirdPoint;
-  double fieldZ_3 = valuesOnGrid[3].getEz() * weightOnFourthPoint;
-  double fieldZ_4 = valuesOnGrid[4].getEz() * weightOnFifthPoint;
-  double fieldZ_5 = valuesOnGrid[5].getEz() * weightOnSixthPoint;
-  double fieldZ_6 = valuesOnGrid[6].getEz() * weightOnSeventhPoint;
-  double fieldZ_7 = valuesOnGrid[7].getEz() * weightOnEighthPoint;
-  double fieldZ_8 = valuesOnGrid[8].getEz() * weightOnNinethPoint;
+  double fieldZ_0 = valuesOnGrid[0].ez * weightOnFirstPoint;
+  double fieldZ_1 = valuesOnGrid[1].ez * weightOnSecondPoint;
+  double fieldZ_2 = valuesOnGrid[2].ez * weightOnThirdPoint;
+  double fieldZ_3 = valuesOnGrid[3].ez * weightOnFourthPoint;
+  double fieldZ_4 = valuesOnGrid[4].ez * weightOnFifthPoint;
+  double fieldZ_5 = valuesOnGrid[5].ez * weightOnSixthPoint;
+  double fieldZ_6 = valuesOnGrid[6].ez * weightOnSeventhPoint;
+  double fieldZ_7 = valuesOnGrid[7].ez * weightOnEighthPoint;
+  double fieldZ_8 = valuesOnGrid[8].ez * weightOnNinethPoint;
 
-  double fieldBX_0 = valuesOnGrid[0].getBx() * weightOnFirstPoint;
-  double fieldBX_1 = valuesOnGrid[1].getBx() * weightOnSecondPoint;
-  double fieldBX_2 = valuesOnGrid[2].getBx() * weightOnThirdPoint;
-  double fieldBX_3 = valuesOnGrid[3].getBx() * weightOnFourthPoint;
-  double fieldBX_4 = valuesOnGrid[4].getBx() * weightOnFifthPoint;
-  double fieldBX_5 = valuesOnGrid[5].getBx() * weightOnSixthPoint;
-  double fieldBX_6 = valuesOnGrid[6].getBx() * weightOnSeventhPoint;
-  double fieldBX_7 = valuesOnGrid[7].getBx() * weightOnEighthPoint;
-  double fieldBX_8 = valuesOnGrid[8].getBx() * weightOnNinethPoint;
+  double fieldBX_0 = valuesOnGrid[0].bx * weightOnFirstPoint;
+  double fieldBX_1 = valuesOnGrid[1].bx * weightOnSecondPoint;
+  double fieldBX_2 = valuesOnGrid[2].bx * weightOnThirdPoint;
+  double fieldBX_3 = valuesOnGrid[3].bx * weightOnFourthPoint;
+  double fieldBX_4 = valuesOnGrid[4].bx * weightOnFifthPoint;
+  double fieldBX_5 = valuesOnGrid[5].bx * weightOnSixthPoint;
+  double fieldBX_6 = valuesOnGrid[6].bx * weightOnSeventhPoint;
+  double fieldBX_7 = valuesOnGrid[7].bx * weightOnEighthPoint;
+  double fieldBX_8 = valuesOnGrid[8].bx * weightOnNinethPoint;
 
-  double fieldBY_0 = valuesOnGrid[0].getBy() * weightOnFirstPoint;
-  double fieldBY_1 = valuesOnGrid[1].getBy() * weightOnSecondPoint;
-  double fieldBY_2 = valuesOnGrid[2].getBy() * weightOnThirdPoint;
-  double fieldBY_3 = valuesOnGrid[3].getBy() * weightOnFourthPoint;
-  double fieldBY_4 = valuesOnGrid[4].getBy() * weightOnFifthPoint;
-  double fieldBY_5 = valuesOnGrid[5].getBy() * weightOnSixthPoint;
-  double fieldBY_6 = valuesOnGrid[6].getBy() * weightOnSeventhPoint;
-  double fieldBY_7 = valuesOnGrid[7].getBy() * weightOnEighthPoint;
-  double fieldBY_8 = valuesOnGrid[8].getBy() * weightOnNinethPoint;
+  double fieldBY_0 = valuesOnGrid[0].by * weightOnFirstPoint;
+  double fieldBY_1 = valuesOnGrid[1].by * weightOnSecondPoint;
+  double fieldBY_2 = valuesOnGrid[2].by * weightOnThirdPoint;
+  double fieldBY_3 = valuesOnGrid[3].by * weightOnFourthPoint;
+  double fieldBY_4 = valuesOnGrid[4].by * weightOnFifthPoint;
+  double fieldBY_5 = valuesOnGrid[5].by * weightOnSixthPoint;
+  double fieldBY_6 = valuesOnGrid[6].by * weightOnSeventhPoint;
+  double fieldBY_7 = valuesOnGrid[7].by * weightOnEighthPoint;
+  double fieldBY_8 = valuesOnGrid[8].by * weightOnNinethPoint;
 
-  double fieldBZ_0 = valuesOnGrid[0].getBz() * weightOnFirstPoint;
-  double fieldBZ_1 = valuesOnGrid[1].getBz() * weightOnSecondPoint;
-  double fieldBZ_2 = valuesOnGrid[2].getBz() * weightOnThirdPoint;
-  double fieldBZ_3 = valuesOnGrid[3].getBz() * weightOnFourthPoint;
-  double fieldBZ_4 = valuesOnGrid[4].getBz() * weightOnFifthPoint;
-  double fieldBZ_5 = valuesOnGrid[5].getBz() * weightOnSixthPoint;
-  double fieldBZ_6 = valuesOnGrid[6].getBz() * weightOnSeventhPoint;
-  double fieldBZ_7 = valuesOnGrid[7].getBz() * weightOnEighthPoint;
-  double fieldBZ_8 = valuesOnGrid[8].getBz() * weightOnNinethPoint;
+  double fieldBZ_0 = valuesOnGrid[0].bz * weightOnFirstPoint;
+  double fieldBZ_1 = valuesOnGrid[1].bz * weightOnSecondPoint;
+  double fieldBZ_2 = valuesOnGrid[2].bz * weightOnThirdPoint;
+  double fieldBZ_3 = valuesOnGrid[3].bz * weightOnFourthPoint;
+  double fieldBZ_4 = valuesOnGrid[4].bz * weightOnFifthPoint;
+  double fieldBZ_5 = valuesOnGrid[5].bz * weightOnSixthPoint;
+  double fieldBZ_6 = valuesOnGrid[6].bz * weightOnSeventhPoint;
+  double fieldBZ_7 = valuesOnGrid[7].bz * weightOnEighthPoint;
+  double fieldBZ_8 = valuesOnGrid[8].bz * weightOnNinethPoint;
 
   tempField.setEx(fieldX_0 + fieldX_1 + fieldX_2 + fieldX_3 + fieldX_4 + fieldX_5 + fieldX_6 + fieldX_7 + fieldX_8);
   tempField.setBx(fieldBX_0 + fieldBX_1 + fieldBX_2 + fieldBX_3 + fieldBX_4 + fieldBX_5 + fieldBX_6 + fieldBX_7 + fieldBX_8);
@@ -1496,18 +1486,18 @@ void evolveLPF_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
 
   //ALGORITMO LEAPFROG PARTICELLE
 
-  if (data.getNdim() == 1)
+  if (data.n_dim == 1)
   {
-    for (int i = 0; i < data.getNsteps(); i++)
+    for (int i = 0; i < data.nSteps; i++)
     {
-      for (int j = 0; j < data.getNelectrons(); j++)
+      for (int j = 0; j < data.n_electrons; j++)
       {
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
         fieldOnParticles.clear();                         //SVUOTA il vettore dei campi sulle particelle ad ogni ciclo
 
@@ -1518,80 +1508,79 @@ void evolveLPF_nogrid(Data data, vector<Particle> &particles, vector<Field> &fie
 
 
         //pstar = p(n-1/2) + Q * E(n) * DeltaT/2
-        pstar.setParticlePX(particles[j].getParticlePX() + 0.5*data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEx());
-        pstar.setParticlePY(particles[j].getParticlePY() + 0.5*data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEy());
-        pstar.setParticlePZ(particles[j].getParticlePZ() + 0.5*data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEz());
-        gamma = sqrt(1. + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+        pstar.setParticlePX(particles[j].px + 0.5*data.dt * particles[j].q * fieldOnParticles[0].ex);
+        pstar.setParticlePY(particles[j].py + 0.5*data.dt * particles[j].q * fieldOnParticles[0].ey);
+        pstar.setParticlePZ(particles[j].pz + 0.5*data.dt * particles[j].q * fieldOnParticles[0].ez);
+        gamma = sqrt(1. + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
         gamma_inv = 1. / gamma;
 
         //b = (DeltaT/2) * Q * B(n) / gamma
-        b.setBx(0.5*data.getDeltaT() * fieldOnParticles[0].getBx() * particles[j].getParticleQ() * gamma_inv);
-        b.setBy(0.5*data.getDeltaT() * fieldOnParticles[0].getBy() * particles[j].getParticleQ() * gamma_inv);
-        b.setBz(0.5*data.getDeltaT() * fieldOnParticles[0].getBz() * particles[j].getParticleQ() * gamma_inv);
-        b2 = pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+        b.setBx(0.5*data.dt * fieldOnParticles[0].bx * particles[j].q * gamma_inv);
+        b.setBy(0.5*data.dt * fieldOnParticles[0].by * particles[j].q * gamma_inv);
+        b.setBz(0.5*data.dt * fieldOnParticles[0].bz * particles[j].q * gamma_inv);
+        b2 = pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
         b2 += 1.;
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz ) / b2 );
         ****************************************************************************/
 
         //      /****************************************************************************
               //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-        pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
-        pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
+        pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz) / b2);
+        pHalfAdvanced.setParticlePY((pstar.py - pstar.px * b.bz) / b2);
         pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
   //      ****************************************************************************/
 
-        particles[j].setParticlePX(2.* pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-        particles[j].setParticlePY(2.* pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
-        particles[j].setParticlePZ(2.* pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
+        particles[j].setParticlePX(2.* pHalfAdvanced.px - particles[j].px);
+        particles[j].setParticlePY(2.* pHalfAdvanced.py - particles[j].py);
+        particles[j].setParticlePZ(2.* pHalfAdvanced.pz - particles[j].pz);
 
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
-        particles[j].setParticleCell(data);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
 
         //INTEGRALI PRIMI (da sistemare, li ho copiati dall'evoluzione sui campi analitici)
         potenziale.clear();
-        zeta = particles[j].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
+        zeta = particles[j].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
         calcolaPotenzialeAnalitico1DSuParticella(data, particles[j], *campoSuPunto);
         potenziale.push_back(*campoSuPunto);
 
-        I1 = (particles[j].getParticlePY() / (particles[j].getParticleM()*C)) + potenziale[0].getEy();
-        I2 = particles[j].getParticlePZ() / (particles[j].getParticleM()*C);
-        I3 = gamma - particles[j].getParticlePX() / (particles[j].getParticleM()*C);
+        I1 = (particles[j].py / (particles[j].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+        I2 = particles[j].pz / (particles[j].m*SPEED_OF_LIGHT);
+        I3 = gamma - particles[j].px / (particles[j].m*SPEED_OF_LIGHT);
 
 
         outputstream
           << setw(12) << i + 1 << "\t"
-          << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
-          << setw(16) << particles[j].getParticleY() << "\t"
-          << setw(16) << particles[j].getParticleZ() << "\t"
+          << setprecision(14) << setw(16) << particles[j].x << "\t"
+          << setw(16) << particles[j].y << "\t"
+          << setw(16) << particles[j].z << "\t"
           //        << setw(16) << particles[j].getParticleCell() << "\t"
-          << setw(16) << particles[j].getParticlePX() << "\t"
-          << setw(16) << particles[j].getParticlePY() << "\t"
-          << setw(16) << particles[j].getParticlePZ() << "\t"
-          << setw(16) << fieldOnParticles[j].getEy() << "\t"
+          << setw(16) << particles[j].px << "\t"
+          << setw(16) << particles[j].py << "\t"
+          << setw(16) << particles[j].pz << "\t"
+          << setw(16) << fieldOnParticles[j].ey << "\t"
           << setw(16) << zeta << "\t"
           << setw(16) << I1 << "\t"
           << setw(16) << I2 << "\t"
           << setw(16) << I3 << endl;
       }
-      data.aumentaT(data.getDeltaT());
+      data.aumentaT(data.dt);
     }
   }
 }
@@ -1617,7 +1606,7 @@ void evolveLPF_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
   vector<Field> fieldOnGrid;
 
   Field *FOG;                             //DA SISTEMARE, c'è solo per avere un campo fittizio su una griglia on-the-fly per implementare l'algoritmo
-  FOG = new Field[1];                         //-------
+  FOG = new Field[1];
 
   double gridXX, gridYY, gridZZ;
   int gridX, gridY, gridZ;
@@ -1630,63 +1619,63 @@ void evolveLPF_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
   //ALGORITMO LEAPFROG PARTICELLE
 
-  if (data.getNdim() == 1)
+  if (data.n_dim == 1)
   {
-    for (int i = 0; i < data.getNsteps(); i++)
+    for (int i = 0; i < data.nSteps; i++)
     {
 
-      data.aumentaT(data.getDeltaT());
+      data.aumentaT(data.dt);
 
-      for (int j = 0; j < data.getNelectrons(); j++)
+      for (int j = 0; j < data.n_electrons; j++)
       {
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
 
         fieldOnParticles.clear();
 
         //QUI MI CALCOLO I PUNTI DI RIFERIMENTO PER LA PARTICELLA IN ESAME nella posizione attuale
         //forse c'e` un modo piu` furbo per farlo sfruttando il # di cella in cui si trova che e` noto
-        gridXX = particles[j].getParticleX() / data.getDeltaX();
+        gridXX = particles[j].x / data.deltaX;
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
         else gridX = (int)gridXX;
 
-        gridYY = particles[j].getParticleY() / data.getDeltaY();
+        gridYY = particles[j].y / data.deltaY;
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
         else gridY = (int)gridYY;
 
-        gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+        gridZZ = particles[j].z / data.deltaZ;
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
         else gridZ = (int)gridZZ;
 
-        coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-        coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-        coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-        coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-        coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-        coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-        coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-        coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-        coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-        coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-        coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-        coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-        coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-        coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-        coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-        coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-        coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-        coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-        coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-        coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-        coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
-        coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-        coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-        coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ() + data.getDeltaZ());
+        coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+        coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+        coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+        coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+        coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+        coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+        coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+        coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+        coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+        coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+        coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+        coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+        coordinateQuintoPuntoGriglia.setParticleX(gridX*data.deltaX);
+        coordinateQuintoPuntoGriglia.setParticleY(gridY*data.deltaY);
+        coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+        coordinateSestoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+        coordinateSestoPuntoGriglia.setParticleY(gridY*data.deltaY);
+        coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+        coordinateSettimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+        coordinateSettimoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+        coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
+        coordinateOttavoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+        coordinateOttavoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+        coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.deltaZ + data.deltaZ);
 
 
         //SICCOME NON HO ANCORA UN CAMPO SU GRIGLIA DEFINITO, TEMPORANEAMENTE CALCOLO IL CAMPO ANALITICO
@@ -1717,76 +1706,75 @@ void evolveLPF_withgrid_onthefly(Data data, vector<Particle> &particles, vector<
 
 
         //pstar = p(n-1/2) + Q * E(n) * DeltaT/2
-        pstar.setParticlePX(particles[j].getParticlePX() + 0.5 * data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEx());
-        pstar.setParticlePY(particles[j].getParticlePY() + 0.5 * data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEy());
-        pstar.setParticlePZ(particles[j].getParticlePZ() + 0.5 * data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEz());
-        gamma = sqrt(1. + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+        pstar.setParticlePX(particles[j].px + 0.5 * data.dt * particles[j].q * fieldOnParticles[0].ex);
+        pstar.setParticlePY(particles[j].py + 0.5 * data.dt * particles[j].q * fieldOnParticles[0].ey);
+        pstar.setParticlePZ(particles[j].pz + 0.5 * data.dt * particles[j].q * fieldOnParticles[0].ez);
+        gamma = sqrt(1. + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
         gamma_inv = 1. / gamma;
 
         //b = (DeltaT/2) * Q * B(n) / gamma
-        b.setBx(0.5 * data.getDeltaT() * fieldOnParticles[0].getBx() * particles[j].getParticleQ() * gamma_inv);
-        b.setBy(0.5 * data.getDeltaT() * fieldOnParticles[0].getBy() * particles[j].getParticleQ() * gamma_inv);
-        b.setBz(0.5 * data.getDeltaT() * fieldOnParticles[0].getBz() * particles[j].getParticleQ() * gamma_inv);
-        b2 = pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+        b.setBx(0.5 * data.dt * fieldOnParticles[0].bx * particles[j].q * gamma_inv);
+        b.setBy(0.5 * data.dt * fieldOnParticles[0].by * particles[j].q * gamma_inv);
+        b.setBz(0.5 * data.dt * fieldOnParticles[0].bz * particles[j].q * gamma_inv);
+        b2 = pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
         b2 += 1.;
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz ) / b2 );
         ****************************************************************************/
 
         // /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-        pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
-        pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
+        pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz) / b2);
+        pHalfAdvanced.setParticlePY((pstar.py - pstar.px * b.bz) / b2);
         pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
         // ****************************************************************************/
 
-        particles[j].setParticlePX(2. * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-        particles[j].setParticlePY(2. * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
-        particles[j].setParticlePZ(2. * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
+        particles[j].setParticlePX(2. * pHalfAdvanced.px - particles[j].px);
+        particles[j].setParticlePY(2. * pHalfAdvanced.py - particles[j].py);
+        particles[j].setParticlePZ(2. * pHalfAdvanced.pz - particles[j].pz);
 
 
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
-        particles[j].setParticleCell(data);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
 
         //INTEGRALI PRIMI (da sistemare, li ho copiati dall'evoluzione sui campi analitici)
         potenziale.clear();
-        zeta = particles[j].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
+        zeta = particles[j].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
 
         calcolaPotenzialeAnalitico1DSuParticella(data, particles[j], *campoSuPunto);
         potenziale.push_back(*campoSuPunto);
 
-        I1 = (particles[j].getParticlePY() / (particles[j].getParticleM()*C)) + potenziale[0].getEy();
-        I2 = particles[j].getParticlePZ() / (particles[j].getParticleM()*C);
-        I3 = gamma - particles[j].getParticlePX() / (particles[j].getParticleM()*C);
+        I1 = (particles[j].py / (particles[j].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+        I2 = particles[j].pz / (particles[j].m*SPEED_OF_LIGHT);
+        I3 = gamma - particles[j].px / (particles[j].m*SPEED_OF_LIGHT);
 
         outputstream
           << setw(12) << i + 1 << "\t"
-          << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
-          << setw(16) << particles[j].getParticleY() << "\t"
-          << setw(16) << particles[j].getParticleZ() << "\t"
+          << setprecision(14) << setw(16) << particles[j].x << "\t"
+          << setw(16) << particles[j].y << "\t"
+          << setw(16) << particles[j].z << "\t"
           // << setw(16) << particles[j].getParticleCell() << "\t"
-          << setw(16) << particles[j].getParticlePX() << "\t"
-          << setw(16) << particles[j].getParticlePY() << "\t"
-          << setw(16) << particles[j].getParticlePZ() << "\t"
-          << setw(16) << fieldOnParticles[0].getEy() << "\t"
-          << setw(16) << potenziale[0].getEy() << "\t"
+          << setw(16) << particles[j].px << "\t"
+          << setw(16) << particles[j].py << "\t"
+          << setw(16) << particles[j].pz << "\t"
+          << setw(16) << fieldOnParticles[0].ey << "\t"
+          << setw(16) << potenziale[0].ey << "\t"
           << setw(16) << zeta << "\t"
           << setw(16) << I1 << "\t"
           << setw(16) << I2 << "\t"
@@ -1821,11 +1809,11 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
   //ALGORITMO LEAPFROG PARTICELLE
 
-  if (data.getNdim() == 1)
+  if (data.n_dim == 1)
   {
-    for (int i = 0; i < data.getNsteps(); i++)
+    for (int i = 0; i < data.nSteps; i++)
     {
-      data.aumentaT(data.getDeltaT());
+      data.aumentaT(data.dt);
 
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);
@@ -1833,14 +1821,14 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
       potenzialeSuPuntiGriglia.clear();
       riempiPuntiGrigliaConPotenzialeAnalitico1D(data, potenzialeSuPuntiGriglia);
 
-      for (int j = 0; j < data.getNelectrons(); j++)
+      for (int j = 0; j < data.n_electrons; j++)
       {
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
 
         // QUI MI CALCOLO I PUNTI DI RIFERIMENTO PER LA PARTICELLA IN ESAME nella posizione attuale
@@ -1849,17 +1837,17 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
         fieldOnParticles.clear();       //SVUOTA il vettore dei campi sulle particelle ad ogni ciclo
 
 
-        gridXX = particles[j].getParticleX() / data.getDeltaX();
+        gridXX = particles[j].x / data.deltaX;
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-        else gridX = (int)gridXX;                      //
+        else gridX = (int)gridXX;
 
-        gridYY = particles[j].getParticleY() / data.getDeltaY();
+        gridYY = particles[j].y / data.deltaY;
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-        else gridY = (int)gridYY;                      //
+        else gridY = (int)gridYY;
 
-        gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+        gridZZ = particles[j].z / data.deltaZ;
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-        else gridZ = (int)gridZZ;                      //
+        else gridZ = (int)gridZZ;
 
         if (gridX < 0 || gridY < 0 || gridZ < 0)
         {
@@ -1868,10 +1856,10 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
         }
 
 
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));      // terzo punto
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));        // primo punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));      // secondo punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));      // terzo punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));    // quarto punto
 
         FOP = interpolation2D_linear(data, particles[j], fieldOnGrid);
         fieldOnParticles.push_back(FOP);
@@ -1881,68 +1869,67 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
 
         //pstar = p(n-1/2) + Q * E(n) * DeltaT/2
-        pstar.setParticlePX(particles[j].getParticlePX() + 0.5 * data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEx());
-        pstar.setParticlePY(particles[j].getParticlePY() + 0.5 * data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEy());
-        pstar.setParticlePZ(particles[j].getParticlePZ() + 0.5 * data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEz());
-        gamma = sqrt(1. + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+        pstar.setParticlePX(particles[j].px + 0.5 * data.dt * particles[j].q * fieldOnParticles[0].ex);
+        pstar.setParticlePY(particles[j].py + 0.5 * data.dt * particles[j].q * fieldOnParticles[0].ey);
+        pstar.setParticlePZ(particles[j].pz + 0.5 * data.dt * particles[j].q * fieldOnParticles[0].ez);
+        gamma = sqrt(1. + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
         gamma_inv = 1. / gamma;
 
         //b = (DeltaT/2) * Q * B(n) / gamma
-        b.setBx(0.5 * data.getDeltaT() * fieldOnParticles[0].getBx() * particles[j].getParticleQ() * gamma_inv);
-        b.setBy(0.5 * data.getDeltaT() * fieldOnParticles[0].getBy() * particles[j].getParticleQ() * gamma_inv);
-        b.setBz(0.5 * data.getDeltaT() * fieldOnParticles[0].getBz() * particles[j].getParticleQ() * gamma_inv);
-        b2 = pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+        b.setBx(0.5 * data.dt * fieldOnParticles[0].bx * particles[j].q * gamma_inv);
+        b.setBy(0.5 * data.dt * fieldOnParticles[0].by * particles[j].q * gamma_inv);
+        b.setBz(0.5 * data.dt * fieldOnParticles[0].bz * particles[j].q * gamma_inv);
+        b2 = pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
         b2 += 1.;
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz ) / b2 );
         ****************************************************************************/
 
         //      /****************************************************************************
               //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-        pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
-        pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
+        pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz) / b2);
+        pHalfAdvanced.setParticlePY((pstar.py - pstar.px * b.bz) / b2);
         pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
   //      ****************************************************************************/
 
-        particles[j].setParticlePX(2. * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-        particles[j].setParticlePY(2. * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
-        particles[j].setParticlePZ(2. * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
+        particles[j].setParticlePX(2. * pHalfAdvanced.px - particles[j].px);
+        particles[j].setParticlePY(2. * pHalfAdvanced.py - particles[j].py);
+        particles[j].setParticlePZ(2. * pHalfAdvanced.pz - particles[j].pz);
 
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
-        particles[j].setParticleCell(data);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
 
         //INTEGRALI PRIMI (da sistemare, li ho copiati dall'evoluzione sui campi analitici)
         potenziale.clear();
-        zeta = particles[j].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
+        zeta = particles[j].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
 
-        gridXX = particles[j].getParticleX() / data.getDeltaX();
+        gridXX = particles[j].x / data.deltaX;
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-        else gridX = (int)gridXX;                      //
+        else gridX = (int)gridXX;
 
-        gridYY = particles[j].getParticleY() / data.getDeltaY();
+        gridYY = particles[j].y / data.deltaY;
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-        else gridY = (int)gridYY;                      //
+        else gridY = (int)gridYY;
 
-        gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+        gridZZ = particles[j].z / data.deltaZ;
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-        else gridZ = (int)gridZZ;                      //
+        else gridZ = (int)gridZZ;
 
         if (gridX < 0 || gridY < 0 || gridZ < 0)
         {
@@ -1952,30 +1939,30 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
         fieldOnGrid.clear();
 
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));       // primo punto
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));     // secondo punto
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));     // terzo punto
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));   // quarto punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));       // primo punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));     // secondo punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));     // terzo punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));   // quarto punto
 
         FOP = interpolation2D_linear(data, particles[j], fieldOnGrid);
         potenziale.push_back(FOP);
 
-        I1 = (particles[j].getParticlePY() / (particles[j].getParticleM()*C)) + potenziale[0].getEy();
-        I2 = particles[j].getParticlePZ() / (particles[j].getParticleM()*C);
-        I3 = gamma - particles[j].getParticlePX() / (particles[j].getParticleM()*C);
+        I1 = (particles[j].py / (particles[j].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+        I2 = particles[j].pz / (particles[j].m*SPEED_OF_LIGHT);
+        I3 = gamma - particles[j].px / (particles[j].m*SPEED_OF_LIGHT);
 
 
 
         outputstream
           << setw(12) << i + 1 << "\t"
-          << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
-          << setw(16) << particles[j].getParticleY() << "\t"
-          << setw(16) << particles[j].getParticleZ() << "\t"
+          << setprecision(14) << setw(16) << particles[j].x << "\t"
+          << setw(16) << particles[j].y << "\t"
+          << setw(16) << particles[j].z << "\t"
           //        << setw(16) << particles[j].getParticleCell() << "\t"
-          << setw(16) << particles[j].getParticlePX() << "\t"
-          << setw(16) << particles[j].getParticlePY() << "\t"
-          << setw(16) << particles[j].getParticlePZ() << "\t"
-          << setw(16) << potenziale[0].getEy() << "\t"
+          << setw(16) << particles[j].px << "\t"
+          << setw(16) << particles[j].py << "\t"
+          << setw(16) << particles[j].pz << "\t"
+          << setw(16) << potenziale[0].ey << "\t"
           << setw(16) << zeta << "\t"
           << setw(16) << I1 << "\t"
           << setw(16) << I2 << "\t"
@@ -1984,65 +1971,65 @@ void evolveLPF_withgrid(Data data, vector<Particle> &particles, vector<Field> &f
 
         /*
         //UPDATE CAMPI ATTORNO ALLA NUOVA POSIZIONE DELLA PARTICELLA  (al momento non li evolve, il set li pone pari al get precedente)
-        gridX = (int) (particles[j].getParticleX()/data.getDeltaX());   //il punto di griglia lungo l'asse x piu` vicino all'origine
-        gridY = (int) (particles[j].getParticleY()/data.getDeltaY());   //il punto di griglia lungo l'asse y piu` vicino all'origine
-        gridZ = (int) (particles[j].getParticleZ()/data.getDeltaZ());   //il punto di griglia lungo l'asse z piu` vicino all'origine
+        gridX = (int) (particles[j].x/data.deltaX);   //il punto di griglia lungo l'asse x piu` vicino all'origine
+        gridY = (int) (particles[j].y/data.deltaY);   //il punto di griglia lungo l'asse y piu` vicino all'origine
+        gridZ = (int) (particles[j].z/data.deltaZ);   //il punto di griglia lungo l'asse z piu` vicino all'origine
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEx() );       // primo punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ex );       // primo punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEx() );   // secondo punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ex );   // secondo punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bz );
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEx() );   // terzo punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ex );   // terzo punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );   // quarto punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );   // quarto punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEx() );   // quinto punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ex );   // quinto punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEx() );   // sesto punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEz() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBz() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ex );   // sesto punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ey );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ez );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bx );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).by );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEx() );   // settimo punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ex );   // settimo punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );   // ottavo punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );   // ottavo punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
         */
       }
     }
@@ -2060,20 +2047,20 @@ void calcolaCampoInUnIstante(Data data, vector<Particle> &particelle, vector<Fie
   */
 
   calcolaCampoAnalitico1DSuParticelle(data, particelle, campiSuParticelle);
-  for (int i = 0; i < data.getNelectrons(); i++)
+  for (int i = 0; i < data.n_electrons; i++)
   {
     outputDATA
       << setw(12) << i + 1 << "\t"
-      << setprecision(14) << setw(16) << particelle[i].getParticleX() << "\t"
-      << setw(16) << particelle[i].getParticleY() << "\t"
-      << setw(16) << particelle[i].getParticleZ() << "\t"
-      << setw(16) << data.getT() << "\t"
-      << setw(16) << campiSuParticelle[i].getEx() << "\t"
-      << setw(16) << campiSuParticelle[i].getEy() << "\t"
-      << setw(16) << campiSuParticelle[i].getEz() << "\t"
-      << setw(16) << campiSuParticelle[i].getBx() << "\t"
-      << setw(16) << campiSuParticelle[i].getBy() << "\t"
-      << setw(16) << campiSuParticelle[i].getBz() << endl;
+      << setprecision(14) << setw(16) << particelle[i].x << "\t"
+      << setw(16) << particelle[i].y << "\t"
+      << setw(16) << particelle[i].z << "\t"
+      << setw(16) << data.t << "\t"
+      << setw(16) << campiSuParticelle[i].ex << "\t"
+      << setw(16) << campiSuParticelle[i].ey << "\t"
+      << setw(16) << campiSuParticelle[i].ez << "\t"
+      << setw(16) << campiSuParticelle[i].bx << "\t"
+      << setw(16) << campiSuParticelle[i].by << "\t"
+      << setw(16) << campiSuParticelle[i].bz << endl;
   }
 }
 
@@ -2097,26 +2084,26 @@ void calcolaEvoluzioneCampoSuParticelle(Data data, vector<Particle> &particelle,
   campoTemp = new Field[1];
   campiSuParticelle.clear();
 
-  for (int i = 0; i < data.getNsteps(); i++)
+  for (int i = 0; i < data.nSteps; i++)
   {
-    for (int j = 0; j < data.getNelectrons(); j++)
+    for (int j = 0; j < data.n_electrons; j++)
     {
       calcolaCampoAnalitico1DSuParticella(data, particelle[j], *campoTemp);
       campiSuParticelle.push_back(*campoTemp);
       outputDATA
         << setw(12) << j + 1 << "\t"
-        << setprecision(14) << setw(16) << particelle[j].getParticleX() << "\t"
-        << setw(16) << particelle[j].getParticleY() << "\t"
-        << setw(16) << particelle[j].getParticleZ() << "\t"
-        << setw(16) << data.getT() << "\t"
-        << setw(16) << campiSuParticelle[j].getEx() << "\t"
-        << setw(16) << campiSuParticelle[j].getEy() << "\t"
-        << setw(16) << campiSuParticelle[j].getEz() << "\t"
-        << setw(16) << campiSuParticelle[j].getBx() << "\t"
-        << setw(16) << campiSuParticelle[j].getBy() << "\t"
-        << setw(16) << campiSuParticelle[j].getBz() << endl;
+        << setprecision(14) << setw(16) << particelle[j].x << "\t"
+        << setw(16) << particelle[j].y << "\t"
+        << setw(16) << particelle[j].z << "\t"
+        << setw(16) << data.t << "\t"
+        << setw(16) << campiSuParticelle[j].ex << "\t"
+        << setw(16) << campiSuParticelle[j].ey << "\t"
+        << setw(16) << campiSuParticelle[j].ez << "\t"
+        << setw(16) << campiSuParticelle[j].bx << "\t"
+        << setw(16) << campiSuParticelle[j].by << "\t"
+        << setw(16) << campiSuParticelle[j].bz << endl;
     }
-    data.aumentaT(data.getDeltaT());
+    data.aumentaT(data.dt);
     campiSuParticelle.clear();
   }
 }
@@ -2139,129 +2126,124 @@ void evolveLPF4_nogrid_TURCHETTI(Data data, vector<Particle> &particles, vector<
   double zeta;
 
   double alpha = 1. / (2. - pow(2., (1. / 3.)));
-  double dtx1 = alpha*data.getDeltaT()*0.5;
-  double dtp1 = alpha*data.getDeltaT();
-  double dtx2 = (1. - alpha)*0.5*data.getDeltaT();
-  double dtp2 = (1. - 2.*alpha)*data.getDeltaT();
-  double dtx3 = (1. - alpha)*0.5*data.getDeltaT();
-  double dtp3 = alpha*data.getDeltaT();
+  double dtx1 = alpha*data.dt*0.5;
+  double dtp1 = alpha*data.dt;
+  double dtx2 = (1. - alpha)*0.5*data.dt;
+  double dtp2 = (1. - 2.*alpha)*data.dt;
+  double dtx3 = (1. - alpha)*0.5*data.dt;
+  double dtp3 = alpha*data.dt;
 
-  for (int i = 0; i < data.getNsteps(); i++)
+  for (int i = 0; i < data.nSteps; i++)
   {
-    for (int j = 0; j < data.getNelectrons(); j++)
+    for (int j = 0; j < data.n_electrons; j++)
     {
       fieldOnParticles.clear();
 
       // PASSO #1
-      gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
-      particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() / (gamma));
-      particles[j].setParticleY(particles[j].getParticleY() + dtx1 * particles[j].getParticlePY() / (gamma));
+      gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
+      particles[j].setParticleX(particles[j].x + dtx1 * particles[j].px / (gamma));
+      particles[j].setParticleY(particles[j].y + dtx1 * particles[j].py / (gamma));
 
       calcolaCampoAnalitico1DSuParticella(data, particles[j], *FOG);
       fieldOnParticles.push_back(*FOG);
 
-      pstar.setParticlePX(particles[j].getParticlePX());
-      pstar.setParticlePY(particles[j].getParticlePY() + dtp1 * 0.5 * fieldOnParticles[0].getEy());
+      pstar.setParticlePX(particles[j].px);
+      pstar.setParticlePY(particles[j].py + dtp1 * 0.5 * fieldOnParticles[0].ey);
 
-      gammastar = sqrt(1. + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2));
-      b.setEy(0.5 * dtp1 * fieldOnParticles[0].getEy() / gammastar);
-      coeff = 1. / (1. + pow(b.getEy(), 2));
+      gammastar = sqrt(1. + pow(pstar.px, 2) + pow(pstar.py, 2));
+      b.setEy(0.5 * dtp1 * fieldOnParticles[0].ey / gammastar);
+      coeff = 1. / (1. + pow(b.ey, 2));
 
-      pHalfAdvanced.setParticlePX(coeff * (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()));
-      pHalfAdvanced.setParticlePY(coeff * (pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()));
+      pHalfAdvanced.setParticlePX(coeff * (pstar.px + pstar.py * b.bz));
+      pHalfAdvanced.setParticlePY(coeff * (pstar.py - pstar.px * b.bz));
 
-      particles[j].setParticlePX(2.* pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-      particles[j].setParticlePY(2.* pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
+      particles[j].setParticlePX(2.* pHalfAdvanced.px - particles[j].px);
+      particles[j].setParticlePY(2.* pHalfAdvanced.py - particles[j].py);
 
       data.aumentaT(dtp1);
 
 
 
       // PASSO #2
-      gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
-      particles[j].setParticleX(particles[j].getParticleX() + dtx2 * particles[j].getParticlePX() / (gamma));
-      particles[j].setParticleY(particles[j].getParticleY() + dtx2 * particles[j].getParticlePY() / (gamma));
+      gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
+      particles[j].setParticleX(particles[j].x + dtx2 * particles[j].px / (gamma));
+      particles[j].setParticleY(particles[j].y + dtx2 * particles[j].py / (gamma));
 
       calcolaCampoAnalitico1DSuParticella(data, particles[j], *FOG);
       fieldOnParticles.push_back(*FOG);
 
-      pstar.setParticlePX(particles[j].getParticlePX());
-      pstar.setParticlePY(particles[j].getParticlePY() + dtp2 * 0.5 * fieldOnParticles[1].getEy());
+      pstar.setParticlePX(particles[j].px);
+      pstar.setParticlePY(particles[j].py + dtp2 * 0.5 * fieldOnParticles[1].ey);
 
-      gammastar = sqrt(1. + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2));
-      b.setEy(0.5 * dtp2 * fieldOnParticles[1].getEy() / gammastar);
-      coeff = 1. / (1. + pow(b.getEy(), 2));
+      gammastar = sqrt(1. + pow(pstar.px, 2) + pow(pstar.py, 2));
+      b.setEy(0.5 * dtp2 * fieldOnParticles[1].ey / gammastar);
+      coeff = 1. / (1. + pow(b.ey, 2));
 
-      pHalfAdvanced.setParticlePX(coeff * (pstar.getParticlePX() + pstar.getParticlePY() * b.getEy()));   //?????
-      pHalfAdvanced.setParticlePY(coeff * (pstar.getParticlePY() - pstar.getParticlePX() * b.getEy()));   //?????
+      pHalfAdvanced.setParticlePX(coeff * (pstar.px + pstar.py * b.ey));   //?????
+      pHalfAdvanced.setParticlePY(coeff * (pstar.py - pstar.px * b.ey));   //?????
 
-      particles[j].setParticlePX(2.* pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-      particles[j].setParticlePY(2.* pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
+      particles[j].setParticlePX(2.* pHalfAdvanced.px - particles[j].px);
+      particles[j].setParticlePY(2.* pHalfAdvanced.py - particles[j].py);
 
       data.aumentaT(dtp2);
 
 
       // PASSO #3
-      gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
-      particles[j].setParticleX(particles[j].getParticleX() + dtx3 * particles[j].getParticlePX() / (gamma));
-      particles[j].setParticleY(particles[j].getParticleY() + dtx3 * particles[j].getParticlePY() / (gamma));
+      gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
+      particles[j].setParticleX(particles[j].x + dtx3 * particles[j].px / (gamma));
+      particles[j].setParticleY(particles[j].y + dtx3 * particles[j].py / (gamma));
 
       calcolaCampoAnalitico1DSuParticella(data, particles[j], *FOG);
       fieldOnParticles.push_back(*FOG);
 
-      pstar.setParticlePX(particles[j].getParticlePX());
-      pstar.setParticlePY(particles[j].getParticlePY() + dtp3 * 0.5 * fieldOnParticles[2].getEy());
+      pstar.setParticlePX(particles[j].px);
+      pstar.setParticlePY(particles[j].py + dtp3 * 0.5 * fieldOnParticles[2].ey);
 
-      gammastar = sqrt(1. + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2));
-      b.setEy(0.5 * dtp3 * fieldOnParticles[2].getEy() / gammastar);
-      coeff = 1. / (1. + pow(b.getEy(), 2));
+      gammastar = sqrt(1. + pow(pstar.px, 2) + pow(pstar.py, 2));
+      b.setEy(0.5 * dtp3 * fieldOnParticles[2].ey / gammastar);
+      coeff = 1. / (1. + pow(b.ey, 2));
 
-      pHalfAdvanced.setParticlePX(coeff * (pstar.getParticlePX() + pstar.getParticlePY() * b.getEy()));   //?????
-      pHalfAdvanced.setParticlePY(coeff * (pstar.getParticlePY() - pstar.getParticlePX() * b.getEy()));   //?????
+      pHalfAdvanced.setParticlePX(coeff * (pstar.px + pstar.py * b.ey));   //?????
+      pHalfAdvanced.setParticlePY(coeff * (pstar.py - pstar.px * b.ey));   //?????
 
-      particles[j].setParticlePX(2.* pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-      particles[j].setParticlePY(2.* pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
+      particles[j].setParticlePX(2.* pHalfAdvanced.px - particles[j].px);
+      particles[j].setParticlePY(2.* pHalfAdvanced.py - particles[j].py);
 
 
       // PASSO #4 - SOLO EVOLUZIONE POSIZIONI
-      gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
+      gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
 
-      particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() / gamma);
-      particles[j].setParticleY(particles[j].getParticleY() + dtx1 * particles[j].getParticlePY() / gamma);
+      particles[j].setParticleX(particles[j].x + dtx1 * particles[j].px / gamma);
+      particles[j].setParticleY(particles[j].y + dtx1 * particles[j].py / gamma);
 
       data.aumentaT(dtp3);
 
-
-
-      particles[j].setParticleCell(data);
-
-
       //INTEGRALI PRIMI (da sistemare, li ho copiati dall'evoluzione sui campi analitici)
       potenziale.clear();
-      zeta = particles[j].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
-      gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+      zeta = particles[j].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
+      gamma = sqrt(1 + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
       calcolaPotenzialeAnalitico1DSuParticella(data, particles[j], *campoSuPunto);
       potenziale.push_back(*campoSuPunto);
 
-      I1 = (particles[j].getParticlePY() / (particles[j].getParticleM()*C)) + potenziale[0].getEy();
-      I2 = particles[j].getParticlePZ() / (particles[j].getParticleM()*C);
-      I3 = gamma - particles[j].getParticlePX() / (particles[j].getParticleM()*C);
+      I1 = (particles[j].py / (particles[j].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+      I2 = particles[j].pz / (particles[j].m*SPEED_OF_LIGHT);
+      I3 = gamma - particles[j].px / (particles[j].m*SPEED_OF_LIGHT);
 
       potenziale.clear();
 
 
       outputstream
         << setw(12) << i + 1 << "\t"
-        << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
-        << setw(16) << particles[j].getParticleY() << "\t"
-        << setw(16) << particles[j].getParticleZ() << "\t"
+        << setprecision(14) << setw(16) << particles[j].x << "\t"
+        << setw(16) << particles[j].y << "\t"
+        << setw(16) << particles[j].z << "\t"
         //        << setw(16) << particles[j].getParticleCell() << "\t"
-        << setw(16) << particles[j].getParticlePX() << "\t"
-        << setw(16) << particles[j].getParticlePY() << "\t"
-        << setw(16) << particles[j].getParticlePZ() << "\t"
-        << setw(16) << fieldOnParticles[0].getEy() << "\t"
-        << setw(16) << fieldOnParticles[1].getEy() << "\t"
-        << setw(16) << fieldOnParticles[2].getEy() << "\t"
+        << setw(16) << particles[j].px << "\t"
+        << setw(16) << particles[j].py << "\t"
+        << setw(16) << particles[j].pz << "\t"
+        << setw(16) << fieldOnParticles[0].ey << "\t"
+        << setw(16) << fieldOnParticles[1].ey << "\t"
+        << setw(16) << fieldOnParticles[2].ey << "\t"
         << setw(16) << zeta << "\t"
         << setw(16) << I1 << "\t"
         << setw(16) << I2 << "\t"
@@ -2281,12 +2263,12 @@ void evolveLPF4_nogrid(Data data, vector<Particle> &particles, ofstream &outputs
   double zeta;
 
   double alpha = 1. / (2. - pow(2., (1. / 3.)));
-  double dtx1 = alpha * data.getDeltaT() * 0.5;
-  double dtp1 = alpha * data.getDeltaT();
-  double dtx2 = (1. - alpha) * 0.5 * data.getDeltaT();
-  double dtp2 = (1. - 2. * alpha) * data.getDeltaT();
-  double dtx3 = (1. - alpha) * 0.5 * data.getDeltaT();
-  double dtp3 = alpha * data.getDeltaT();
+  double dtx1 = alpha * data.dt * 0.5;
+  double dtp1 = alpha * data.dt;
+  double dtx2 = (1. - alpha) * 0.5 * data.dt;
+  double dtp2 = (1. - 2. * alpha) * data.dt;
+  double dtx3 = (1. - alpha) * 0.5 * data.dt;
+  double dtp3 = alpha * data.dt;
 
   //Il leapfrog di ordine 4 si ottiene componendo 3 schemi leapfrog invertiti e usando un peso alpha
   //   r(n+1/2) = r(n-1/2) + DeltaT(pesatoXciascunPassaggio) * p(n)/gamma(n)
@@ -2295,9 +2277,9 @@ void evolveLPF4_nogrid(Data data, vector<Particle> &particles, ofstream &outputs
   //nel quale     p(n+1/2) = ( p(n) + p(n+1) ) / 2
 
 
-  for (int i = 0; i < data.getNsteps(); i++)
+  for (int i = 0; i < data.nSteps; i++)
   {
-    for (int j = 0; j < data.getNelectrons(); j++)
+    for (int j = 0; j < data.n_electrons; j++)
     {
       // PASSO #1
       evolveLPF(data, particles[j], dtp1, dtx1);
@@ -2307,40 +2289,39 @@ void evolveLPF4_nogrid(Data data, vector<Particle> &particles, ofstream &outputs
       evolveLPF(data, particles[j], dtp3, dtx3);
 
       // PASSO #4 - evoluzione solo posizioni
-      gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
+      gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
       gamma_inv = 1. / gamma;
-      particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() * gamma_inv);
-      particles[j].setParticleY(particles[j].getParticleY() + dtx1 * particles[j].getParticlePY() * gamma_inv);
-      particles[j].setParticleZ(particles[j].getParticleZ() + dtx1 * particles[j].getParticlePZ() * gamma_inv);
-      particles[j].setParticleCell(data);
+      particles[j].setParticleX(particles[j].x + dtx1 * particles[j].px * gamma_inv);
+      particles[j].setParticleY(particles[j].y + dtx1 * particles[j].py * gamma_inv);
+      particles[j].setParticleZ(particles[j].z + dtx1 * particles[j].pz * gamma_inv);
 
       data.aumentaT(dtx1);
 
-      zeta = particles[j].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
+      zeta = particles[j].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
       calcolaPotenzialeAnalitico1DSuParticella(data, particles[j], *campoSuPunto);
 
-      I1 = (particles[j].getParticlePY() / (particles[j].getParticleM()*C)) + (*campoSuPunto).getEy();
-      I2 = particles[j].getParticlePZ() / (particles[j].getParticleM()*C);
-      I3 = gamma - particles[j].getParticlePX() / (particles[j].getParticleM()*C);
+      I1 = (particles[j].py / (particles[j].m*SPEED_OF_LIGHT)) + (*campoSuPunto).ey;
+      I2 = particles[j].pz / (particles[j].m*SPEED_OF_LIGHT);
+      I3 = gamma - particles[j].px / (particles[j].m*SPEED_OF_LIGHT);
 
 
       outputstream
         << setw(12) << i + 1 << "\t"
         << setprecision(14)
-        << setw(16) << particles[j].getParticleX() << "\t"
-        << setw(16) << particles[j].getParticleY() << "\t"
-        << setw(16) << particles[j].getParticleZ() << "\t"
-        << setw(16) << particles[j].getParticlePX() << "\t"
-        << setw(16) << particles[j].getParticlePY() << "\t"
-        << setw(16) << particles[j].getParticlePZ() << "\t"
+        << setw(16) << particles[j].x << "\t"
+        << setw(16) << particles[j].y << "\t"
+        << setw(16) << particles[j].z << "\t"
+        << setw(16) << particles[j].px << "\t"
+        << setw(16) << particles[j].py << "\t"
+        << setw(16) << particles[j].pz << "\t"
         << setw(16) << zeta << "\t"
         << setw(16) << I1 << "\t"
         << setw(16) << I2 << "\t"
         << setw(16) << I3 << endl;
 
-      data.aumentaT(-data.getDeltaT());   // cosi` un altro elettrone dello stesso step non si trova i tempi avanzati
+      data.aumentaT(-data.dt);   // cosi` un altro elettrone dello stesso step non si trova i tempi avanzati
     }
-    data.aumentaT(data.getDeltaT());      // e` questo il vero avanzamento di uno step temporale del tempo del sistema
+    data.aumentaT(data.dt);      // e` questo il vero avanzamento di uno step temporale del tempo del sistema
   }
 }
 
@@ -2375,71 +2356,71 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
   double zeta;
 
   double alpha = 1. / (2. - pow(2., (1. / 3.)));
-  double dtx1 = 0.5*alpha*data.getDeltaT();
-  double dtp1 = alpha*data.getDeltaT();
-  double dtx2 = (1. - alpha)*0.5*data.getDeltaT();
-  double dtp2 = (1. - 2 * alpha)*data.getDeltaT();
-  double dtx3 = (1. - alpha)*0.5*data.getDeltaT();
-  double dtp3 = alpha*data.getDeltaT();
+  double dtx1 = 0.5*alpha*data.dt;
+  double dtp1 = alpha*data.dt;
+  double dtx2 = (1. - alpha)*0.5*data.dt;
+  double dtp2 = (1. - 2 * alpha)*data.dt;
+  double dtx3 = (1. - alpha)*0.5*data.dt;
+  double dtp3 = alpha*data.dt;
 
   Field *campoSuPunto;
   campoSuPunto = new Field[1];
 
   //ALGORITMO LEAPFROG PARTICELLE
 
-  for (int i = 0; i < data.getNsteps(); i++)
+  for (int i = 0; i < data.nSteps; i++)
   {
-    for (int j = 0; j < data.getNelectrons(); j++)
+    for (int j = 0; j < data.n_electrons; j++)
     {
-      gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
       gamma_inv = 1. / gamma;
 
-      particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() * gamma_inv);
-      particles[j].setParticleY(particles[j].getParticleY() + dtx1 * particles[j].getParticlePY() * gamma_inv);
-      particles[j].setParticleZ(particles[j].getParticleZ() + dtx1 * particles[j].getParticlePZ() * gamma_inv);
+      particles[j].setParticleX(particles[j].x + dtx1 * particles[j].px * gamma_inv);
+      particles[j].setParticleY(particles[j].y + dtx1 * particles[j].py * gamma_inv);
+      particles[j].setParticleZ(particles[j].z + dtx1 * particles[j].pz * gamma_inv);
 
 
       fieldOnParticles.clear();
 
       // STEP #1
 
-      gridXX = particles[j].getParticleX() / data.getDeltaX();
+      gridXX = particles[j].x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
-      else gridX = (int)gridXX;                      //
+      else gridX = (int)gridXX;
 
-      gridYY = particles[j].getParticleY() / data.getDeltaY();
+      gridYY = particles[j].y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
-      else gridY = (int)gridYY;                      //
+      else gridY = (int)gridYY;
 
-      gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+      gridZZ = particles[j].z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
-      else gridZ = (int)gridZZ;                      //
+      else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
       /*
-      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
-      coordinateSestoPuntoGriglia.setParticleX(gridX*data.getDeltaX()+data.getDeltaX());
-      coordinateSestoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
-      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.getDeltaY()+data.getDeltaY());
-      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
-      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.getDeltaX()+data.getDeltaX());
-      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.getDeltaY()+data.getDeltaY());
-      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ()+data.getDeltaZ());
+      coordinateQuintoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateQuintoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateQuintoPuntoGriglia.setParticleZ(gridZ*data.deltaZ+data.deltaZ);
+      coordinateSestoPuntoGriglia.setParticleX(gridX*data.deltaX+data.deltaX);
+      coordinateSestoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSestoPuntoGriglia.setParticleZ(gridZ*data.deltaZ+data.deltaZ);
+      coordinateSettimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateSettimoPuntoGriglia.setParticleY(gridY*data.deltaY+data.deltaY);
+      coordinateSettimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ+data.deltaZ);
+      coordinateOttavoPuntoGriglia.setParticleX(gridX*data.deltaX+data.deltaX);
+      coordinateOttavoPuntoGriglia.setParticleY(gridY*data.deltaY+data.deltaY);
+      coordinateOttavoPuntoGriglia.setParticleZ(gridZ*data.deltaZ+data.deltaZ);
       */
 
       data.aumentaT(dtx1);
@@ -2477,77 +2458,77 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 
 
       //pstar = p(n) + Q * E(n+1/2) * DeltaT/2
-      pstar.setParticlePX(particles[j].getParticlePX() + 0.5*dtp1 * particles[j].getParticleQ() * fieldOnParticles[0].getEx());
-      pstar.setParticlePY(particles[j].getParticlePY() + 0.5*dtp1 * particles[j].getParticleQ() * fieldOnParticles[0].getEy());
-      pstar.setParticlePZ(particles[j].getParticlePZ() + 0.5*dtp1 * particles[j].getParticleQ() * fieldOnParticles[0].getEz());
-      gamma = sqrt(1 + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+      pstar.setParticlePX(particles[j].px + 0.5*dtp1 * particles[j].q * fieldOnParticles[0].ex);
+      pstar.setParticlePY(particles[j].py + 0.5*dtp1 * particles[j].q * fieldOnParticles[0].ey);
+      pstar.setParticlePZ(particles[j].pz + 0.5*dtp1 * particles[j].q * fieldOnParticles[0].ez);
+      gamma = sqrt(1 + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
       gamma_inv = 1. / gamma;
 
       //b = (DeltaT/2) * Q * B(n+1/2) / gamma(aggiornato al pstar)
-      b.setBx(0.5*dtp1 * fieldOnParticles[0].getBx() * particles[j].getParticleQ() * gamma_inv);
-      b.setBy(0.5*dtp1 * fieldOnParticles[0].getBy() * particles[j].getParticleQ() * gamma_inv);
-      b.setBz(0.5*dtp1 * fieldOnParticles[0].getBz() * particles[j].getParticleQ() * gamma_inv);
-      b2 = 1. + pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+      b.setBx(0.5*dtp1 * fieldOnParticles[0].bx * particles[j].q * gamma_inv);
+      b.setBy(0.5*dtp1 * fieldOnParticles[0].by * particles[j].q * gamma_inv);
+      b.setBz(0.5*dtp1 * fieldOnParticles[0].bz * particles[j].q * gamma_inv);
+      b2 = 1. + pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
 
       /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-      pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-      pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-      pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+      pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+      pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+      pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
       ****************************************************************************/
 
       /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
-      pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
-      pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
-      pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
+      pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx ) / b2 );
+      pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by ) / b2 );
+      pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz ) / b2 );
       ****************************************************************************/
 
       // /****************************************************************************
             //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-      pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
-      pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
+      pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz) / b2);
+      pHalfAdvanced.setParticlePY((pstar.py - pstar.px * b.bz) / b2);
       pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
       // ****************************************************************************/
 
-      particles[j].setParticlePX(2 * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-      particles[j].setParticlePY(2 * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
-      particles[j].setParticlePZ(2 * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
+      particles[j].setParticlePX(2 * pHalfAdvanced.px - particles[j].px);
+      particles[j].setParticlePY(2 * pHalfAdvanced.py - particles[j].py);
+      particles[j].setParticlePZ(2 * pHalfAdvanced.pz - particles[j].pz);
 
 
       // STEP #2
-      gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
       gamma_inv = 1. / gamma;
 
-      particles[j].setParticleX(particles[j].getParticleX() + dtx2 * particles[j].getParticlePX() * gamma_inv);
-      particles[j].setParticleY(particles[j].getParticleY() + dtx2 * particles[j].getParticlePY() * gamma_inv);
-      particles[j].setParticleZ(particles[j].getParticleZ() + dtx2 * particles[j].getParticlePZ() * gamma_inv);
+      particles[j].setParticleX(particles[j].x + dtx2 * particles[j].px * gamma_inv);
+      particles[j].setParticleY(particles[j].y + dtx2 * particles[j].py * gamma_inv);
+      particles[j].setParticleZ(particles[j].z + dtx2 * particles[j].pz * gamma_inv);
 
 
-      gridXX = particles[j].getParticleX() / data.getDeltaX();
+      gridXX = particles[j].x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
       else gridX = (int)gridXX;
 
-      gridYY = particles[j].getParticleY() / data.getDeltaY();
+      gridYY = particles[j].y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
       else gridY = (int)gridYY;
 
-      gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+      gridZZ = particles[j].z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
       else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
 
       data.aumentaT(dtx2);
 
@@ -2566,77 +2547,77 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
       fieldOnGrid.clear();
 
       //pstar = p(n) + Q * E(n+1/2) * DeltaT/2
-      pstar.setParticlePX(particles[j].getParticlePX() + 0.5*dtp2 * particles[j].getParticleQ() * fieldOnParticles[1].getEx());
-      pstar.setParticlePY(particles[j].getParticlePY() + 0.5*dtp2 * particles[j].getParticleQ() * fieldOnParticles[1].getEy());
-      pstar.setParticlePZ(particles[j].getParticlePZ() + 0.5*dtp2 * particles[j].getParticleQ() * fieldOnParticles[1].getEz());
-      gamma = sqrt(1 + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+      pstar.setParticlePX(particles[j].px + 0.5*dtp2 * particles[j].q * fieldOnParticles[1].ex);
+      pstar.setParticlePY(particles[j].py + 0.5*dtp2 * particles[j].q * fieldOnParticles[1].ey);
+      pstar.setParticlePZ(particles[j].pz + 0.5*dtp2 * particles[j].q * fieldOnParticles[1].ez);
+      gamma = sqrt(1 + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
       gamma_inv = 1. / gamma;
 
       //b = (DeltaT/2) * Q * B(n+1/2) / gamma(aggiornato al pstar)
-      b.setBx(0.5*dtp2 * fieldOnParticles[1].getBx() * particles[j].getParticleQ() * gamma_inv);
-      b.setBy(0.5*dtp2 * fieldOnParticles[1].getBy() * particles[j].getParticleQ() * gamma_inv);
-      b.setBz(0.5*dtp2 * fieldOnParticles[1].getBz() * particles[j].getParticleQ() * gamma_inv);
-      b2 = 1. + pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+      b.setBx(0.5*dtp2 * fieldOnParticles[1].bx * particles[j].q * gamma_inv);
+      b.setBy(0.5*dtp2 * fieldOnParticles[1].by * particles[j].q * gamma_inv);
+      b.setBz(0.5*dtp2 * fieldOnParticles[1].bz * particles[j].q * gamma_inv);
+      b2 = 1. + pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
 
       /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-      pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-      pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-      pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+      pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+      pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+      pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
       ****************************************************************************/
 
       /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
-      pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
-      pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
-      pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
+      pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx ) / b2 );
+      pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by ) / b2 );
+      pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz ) / b2 );
       ****************************************************************************/
 
       // /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-      pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
-      pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
+      pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz) / b2);
+      pHalfAdvanced.setParticlePY((pstar.py - pstar.px * b.bz) / b2);
       pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
       // ****************************************************************************/
 
 
-      particles[j].setParticlePX(2 * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-      particles[j].setParticlePY(2 * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
-      particles[j].setParticlePZ(2 * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
+      particles[j].setParticlePX(2 * pHalfAdvanced.px - particles[j].px);
+      particles[j].setParticlePY(2 * pHalfAdvanced.py - particles[j].py);
+      particles[j].setParticlePZ(2 * pHalfAdvanced.pz - particles[j].pz);
 
 
       // STEP #3
-      gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+      gamma = sqrt(1 + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
       gamma_inv = 1. / gamma;
 
-      particles[j].setParticleX(particles[j].getParticleX() + dtx3 * particles[j].getParticlePX() * gamma_inv);
-      particles[j].setParticleY(particles[j].getParticleY() + dtx3 * particles[j].getParticlePY() * gamma_inv);
-      particles[j].setParticleZ(particles[j].getParticleZ() + dtx3 * particles[j].getParticlePZ() * gamma_inv);
+      particles[j].setParticleX(particles[j].x + dtx3 * particles[j].px * gamma_inv);
+      particles[j].setParticleY(particles[j].y + dtx3 * particles[j].py * gamma_inv);
+      particles[j].setParticleZ(particles[j].z + dtx3 * particles[j].pz * gamma_inv);
 
-      gridXX = particles[j].getParticleX() / data.getDeltaX();
+      gridXX = particles[j].x / data.deltaX;
       if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
       else gridX = (int)gridXX;
 
-      gridYY = particles[j].getParticleY() / data.getDeltaY();
+      gridYY = particles[j].y / data.deltaY;
       if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
       else gridY = (int)gridYY;
 
-      gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+      gridZZ = particles[j].z / data.deltaZ;
       if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
       else gridZ = (int)gridZZ;
 
-      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.getDeltaY());
-      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.getDeltaX());
-      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
-      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.getDeltaX() + data.getDeltaX());
-      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.getDeltaY() + data.getDeltaY());
-      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.getDeltaZ());
+      coordinatePrimoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinatePrimoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinatePrimoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateSecondoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateSecondoPuntoGriglia.setParticleY(gridY*data.deltaY);
+      coordinateSecondoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateTerzoPuntoGriglia.setParticleX(gridX*data.deltaX);
+      coordinateTerzoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateTerzoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
+      coordinateQuartoPuntoGriglia.setParticleX(gridX*data.deltaX + data.deltaX);
+      coordinateQuartoPuntoGriglia.setParticleY(gridY*data.deltaY + data.deltaY);
+      coordinateQuartoPuntoGriglia.setParticleZ(gridZ*data.deltaZ);
 
       data.aumentaT(dtx3);
 
@@ -2657,80 +2638,79 @@ void evolveLPF4_withgrid_onthefly(Data data, vector<Particle> &particles, vector
 
 
       //pstar = p(n) + Q * E(n+1/2) * DeltaT/2
-      pstar.setParticlePX(particles[j].getParticlePX() + 0.5*dtp3 * particles[j].getParticleQ() * fieldOnParticles[2].getEx());
-      pstar.setParticlePY(particles[j].getParticlePY() + 0.5*dtp3 * particles[j].getParticleQ() * fieldOnParticles[2].getEy());
-      pstar.setParticlePZ(particles[j].getParticlePZ() + 0.5*dtp3 * particles[j].getParticleQ() * fieldOnParticles[2].getEz());
-      gamma = sqrt(1 + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+      pstar.setParticlePX(particles[j].px + 0.5*dtp3 * particles[j].q * fieldOnParticles[2].ex);
+      pstar.setParticlePY(particles[j].py + 0.5*dtp3 * particles[j].q * fieldOnParticles[2].ey);
+      pstar.setParticlePZ(particles[j].pz + 0.5*dtp3 * particles[j].q * fieldOnParticles[2].ez);
+      gamma = sqrt(1 + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
       gamma_inv = 1. / gamma;
 
       //b = (DeltaT/2) * Q * B(n+1/2) / gamma(aggiornato al pstar)
-      b.setBx(0.5*dtp3 * fieldOnParticles[2].getBx() * particles[j].getParticleQ() * gamma_inv);
-      b.setBy(0.5*dtp3 * fieldOnParticles[2].getBy() * particles[j].getParticleQ() * gamma_inv);
-      b.setBz(0.5*dtp3 * fieldOnParticles[2].getBz() * particles[j].getParticleQ() * gamma_inv);
-      b2 = 1. + pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+      b.setBx(0.5*dtp3 * fieldOnParticles[2].bx * particles[j].q * gamma_inv);
+      b.setBy(0.5*dtp3 * fieldOnParticles[2].by * particles[j].q * gamma_inv);
+      b.setBz(0.5*dtp3 * fieldOnParticles[2].bz * particles[j].q * gamma_inv);
+      b2 = 1. + pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
 
 
       /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-      pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-      pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-      pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+      pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+      pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+      pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
       ****************************************************************************/
 
       /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
-      pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
-      pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
-      pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
+      pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx ) / b2 );
+      pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by ) / b2 );
+      pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz ) / b2 );
       ****************************************************************************/
 
       // /****************************************************************************
       //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-      pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
-      pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
+      pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz) / b2);
+      pHalfAdvanced.setParticlePY((pstar.py - pstar.px * b.bz) / b2);
       pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
       // ****************************************************************************/
 
-      particles[j].setParticlePX(2 * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-      particles[j].setParticlePY(2 * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
-      particles[j].setParticlePZ(2 * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
+      particles[j].setParticlePX(2 * pHalfAdvanced.px - particles[j].px);
+      particles[j].setParticlePY(2 * pHalfAdvanced.py - particles[j].py);
+      particles[j].setParticlePZ(2 * pHalfAdvanced.pz - particles[j].pz);
 
 
 
       // PASSO #4 - evoluzione solo posizioni
-      gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
+      gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
       gamma_inv = 1. / gamma;
 
-      particles[j].setParticleX(particles[j].getParticleX() + dtx1 * particles[j].getParticlePX() * gamma_inv);
-      particles[j].setParticleY(particles[j].getParticleY() + dtx1 * particles[j].getParticlePY() * gamma_inv);
-      particles[j].setParticleZ(particles[j].getParticleZ() + dtx1 * particles[j].getParticlePZ() * gamma_inv);
-      particles[j].setParticleCell(data);
+      particles[j].setParticleX(particles[j].x + dtx1 * particles[j].px * gamma_inv);
+      particles[j].setParticleY(particles[j].y + dtx1 * particles[j].py * gamma_inv);
+      particles[j].setParticleZ(particles[j].z + dtx1 * particles[j].pz * gamma_inv);
 
       data.aumentaT(dtx1);
 
       //INTEGRALI PRIMI (da sistemare, li ho copiati dall'evoluzione sui campi analitici)
       potenziale.clear();
-      zeta = particles[j].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
-      gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+      zeta = particles[j].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
+      gamma = sqrt(1 + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
       calcolaPotenzialeAnalitico1DSuParticella(data, particles[j], *campoSuPunto);
       potenziale.push_back(*campoSuPunto);
 
-      I1 = (particles[j].getParticlePY() / (particles[j].getParticleM()*C)) + potenziale[0].getEy();
-      I2 = particles[j].getParticlePZ() / (particles[j].getParticleM()*C);
-      I3 = gamma - particles[j].getParticlePX() / (particles[j].getParticleM()*C);
+      I1 = (particles[j].py / (particles[j].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+      I2 = particles[j].pz / (particles[j].m*SPEED_OF_LIGHT);
+      I3 = gamma - particles[j].px / (particles[j].m*SPEED_OF_LIGHT);
 
       potenziale.clear();
 
 
       outputstream
         << setw(12) << i + 1 << "\t"
-        << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
-        << setw(16) << particles[j].getParticleY() << "\t"
-        << setw(16) << particles[j].getParticleZ() << "\t"
+        << setprecision(14) << setw(16) << particles[j].x << "\t"
+        << setw(16) << particles[j].y << "\t"
+        << setw(16) << particles[j].z << "\t"
         // << setw(16) << particles[j].getParticleCell() << "\t"
-        << setw(16) << particles[j].getParticlePX() << "\t"
-        << setw(16) << particles[j].getParticlePY() << "\t"
-        << setw(16) << particles[j].getParticlePZ() << "\t"
+        << setw(16) << particles[j].px << "\t"
+        << setw(16) << particles[j].py << "\t"
+        << setw(16) << particles[j].pz << "\t"
         << setw(16) << zeta << "\t"
         << setw(16) << I1 << "\t"
         << setw(16) << I2 << "\t"
@@ -2768,11 +2748,11 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
 
   //ALGORITMO LEAPFROG PARTICELLE
 
-  if (data.getNdim() == 1)
+  if (data.n_dim == 1)
   {
-    for (int i = 0; i < data.getNsteps(); i++)
+    for (int i = 0; i < data.nSteps; i++)
     {
-      data.aumentaT(data.getDeltaT());
+      data.aumentaT(data.dt);
 
       campoSuPuntiGriglia.clear();
       riempiPuntiGrigliaConCampoAnalitico1D(data, campoSuPuntiGriglia);
@@ -2780,14 +2760,14 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
       potenzialeSuPuntiGriglia.clear();
       riempiPuntiGrigliaConPotenzialeAnalitico1D(data, potenzialeSuPuntiGriglia);
 
-      for (int j = 0; j < data.getNelectrons(); j++)
+      for (int j = 0; j < data.n_electrons; j++)
       {
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
 
         //QUI MI CALCOLO I PUNTI DI RIFERIMENTO PER LA PARTICELLA IN ESAME nella posizione attuale
@@ -2796,15 +2776,15 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
         fieldOnParticles.clear();       //SVUOTA il vettore dei campi sulle particelle ad ogni ciclo
 
 
-        gridXX = particles[j].getParticleX() / data.getDeltaX();
+        gridXX = particles[j].x / data.deltaX;
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
         else gridX = (int)gridXX;
 
-        gridYY = particles[j].getParticleY() / data.getDeltaY();
+        gridYY = particles[j].y / data.deltaY;
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
         else gridY = (int)gridYY;
 
-        gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+        gridZZ = particles[j].z / data.deltaZ;
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
         else gridZ = (int)gridZZ;
 
@@ -2815,10 +2795,10 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
         }
 
 
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));        // primo punto
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));      // secondo punto
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));      // terzo punto
-        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));    // quarto punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));        // primo punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));      // secondo punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));      // terzo punto
+        fieldOnGrid.push_back(campoSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));    // quarto punto
 
         FOP = interpolation2D_linear(data, particles[j], fieldOnGrid);
         fieldOnParticles.push_back(FOP);
@@ -2828,67 +2808,67 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
 
 
         //pstar = p(n-1/2) + Q * E(n) * DeltaT/2
-        pstar.setParticlePX(particles[j].getParticlePX() + 0.5*data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEx());
-        pstar.setParticlePY(particles[j].getParticlePY() + 0.5*data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEy());
-        pstar.setParticlePZ(particles[j].getParticlePZ() + 0.5*data.getDeltaT() * particles[j].getParticleQ() * fieldOnParticles[0].getEz());
-        gamma = sqrt(1 + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+        pstar.setParticlePX(particles[j].px + 0.5*data.dt * particles[j].q * fieldOnParticles[0].ex);
+        pstar.setParticlePY(particles[j].py + 0.5*data.dt * particles[j].q * fieldOnParticles[0].ey);
+        pstar.setParticlePZ(particles[j].pz + 0.5*data.dt * particles[j].q * fieldOnParticles[0].ez);
+        gamma = sqrt(1 + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
         gamma_inv = 1. / gamma;
 
         //b = (DeltaT/2) * Q * B(n) / gamma
-        b.setBx(0.5*data.getDeltaT() * fieldOnParticles[0].getBx() * particles[j].getParticleQ() * gamma_inv);
-        b.setBy(0.5*data.getDeltaT() * fieldOnParticles[0].getBy() * particles[j].getParticleQ() * gamma_inv);
-        b.setBz(0.5*data.getDeltaT() * fieldOnParticles[0].getBz() * particles[j].getParticleQ() * gamma_inv);
-        b2 = pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+        b.setBx(0.5*data.dt * fieldOnParticles[0].bx * particles[j].q * gamma_inv);
+        b.setBy(0.5*data.dt * fieldOnParticles[0].by * particles[j].q * gamma_inv);
+        b.setBz(0.5*data.dt * fieldOnParticles[0].bz * particles[j].q * gamma_inv);
+        b2 = pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
         b2 += 1.;
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
         ****************************************************************************/
 
         /****************************************************************************
         //p(n+1/2) = [pstar + pstar x b + b x (pstar  x b)] / b2   SECONDO LONDRILLO
-        pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx() ) / b2 );
-        pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy() ) / b2 );
-        pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz() ) / b2 );
+        pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx ) / b2 );
+        pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by ) / b2 );
+        pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz ) / b2 );
         ****************************************************************************/
 
         //      /****************************************************************************
               //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-        pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2);
-        pHalfAdvanced.setParticlePY((pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2);
+        pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz) / b2);
+        pHalfAdvanced.setParticlePY((pstar.py - pstar.px * b.bz) / b2);
         pHalfAdvanced.setParticlePZ(0.);  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
   //      ****************************************************************************/
 
 
-        particles[j].setParticlePX(2 * pHalfAdvanced.getParticlePX() - particles[j].getParticlePX());
-        particles[j].setParticlePY(2 * pHalfAdvanced.getParticlePY() - particles[j].getParticlePY());
-        particles[j].setParticlePZ(2 * pHalfAdvanced.getParticlePZ() - particles[j].getParticlePZ());
+        particles[j].setParticlePX(2 * pHalfAdvanced.px - particles[j].px);
+        particles[j].setParticlePY(2 * pHalfAdvanced.py - particles[j].py);
+        particles[j].setParticlePZ(2 * pHalfAdvanced.pz - particles[j].pz);
 
-        gamma = sqrt(1. + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2));
+        gamma = sqrt(1. + pow(particles[j].px, 2) + pow(particles[j].py, 2));
         gamma_inv = 1. / gamma;
 
-        particles[j].setParticleX(particles[j].getParticleX() + 0.5 * data.getDeltaT() * particles[j].getParticlePX() * gamma_inv);
-        particles[j].setParticleY(particles[j].getParticleY() + 0.5 * data.getDeltaT() * particles[j].getParticlePY() * gamma_inv);
-        particles[j].setParticleZ(particles[j].getParticleZ() + 0.5 * data.getDeltaT() * particles[j].getParticlePZ() * gamma_inv);
+        particles[j].setParticleX(particles[j].x + 0.5 * data.dt * particles[j].px * gamma_inv);
+        particles[j].setParticleY(particles[j].y + 0.5 * data.dt * particles[j].py * gamma_inv);
+        particles[j].setParticleZ(particles[j].z + 0.5 * data.dt * particles[j].pz * gamma_inv);
 
 
         //INTEGRALI PRIMI (da sistemare, li ho copiati dall'evoluzione sui campi analitici)
         potenziale.clear();
-        zeta = particles[j].getParticleX() - C * data.getT();             // non usato nella mia struttura delle equazioni di campo
-        gamma = sqrt(1 + pow(particles[j].getParticlePX(), 2) + pow(particles[j].getParticlePY(), 2) + pow(particles[j].getParticlePZ(), 2));
+        zeta = particles[j].x - SPEED_OF_LIGHT * data.t;             // non usato nella mia struttura delle equazioni di campo
+        gamma = sqrt(1 + pow(particles[j].px, 2) + pow(particles[j].py, 2) + pow(particles[j].pz, 2));
 
-        gridXX = particles[j].getParticleX() / data.getDeltaX();
+        gridXX = particles[j].x / data.deltaX;
         if (gridXX < 0) gridX = ((int)gridXX) - 1;           //il punto di griglia lungo l'asse x a sinistra della particella
         else gridX = (int)gridXX;
 
-        gridYY = particles[j].getParticleY() / data.getDeltaY();
+        gridYY = particles[j].y / data.deltaY;
         if (gridYY < 0) gridY = ((int)gridYY) - 1;           //il punto di griglia lungo l'asse y a sinistra della particella
         else gridY = (int)gridYY;
 
-        gridZZ = particles[j].getParticleZ() / data.getDeltaZ();
+        gridZZ = particles[j].z / data.deltaZ;
         if (gridZZ < 0) gridZ = ((int)gridZZ) - 1;           //il punto di griglia lungo l'asse z a sinistra della particella
         else gridZ = (int)gridZZ;
 
@@ -2899,33 +2879,33 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
         }
 
 
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.getNgridPointsX() + gridX));       // primo punto
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.getNgridPointsX() + (gridX + 1)));     // secondo punto
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + gridX));     // terzo punto
-        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.getNgridPointsX() + (gridX + 1)));   // quarto punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.nGridPointsX + gridX));       // primo punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at(gridY * data.nGridPointsX + (gridX + 1)));     // secondo punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + gridX));     // terzo punto
+        fieldOnGrid.push_back(potenzialeSuPuntiGriglia.at((gridY + 1) * data.nGridPointsX + (gridX + 1)));   // quarto punto
 
         FOP = interpolation2D_linear(data, particles[j], fieldOnGrid);
         potenziale.push_back(FOP);
 
         fieldOnGrid.clear();
 
-        I1 = (particles[j].getParticlePY() / (particles[j].getParticleM()*C)) + potenziale[0].getEy();
-        I2 = particles[j].getParticlePZ() / (particles[j].getParticleM()*C);
-        I3 = gamma - particles[j].getParticlePX() / (particles[j].getParticleM()*C);
+        I1 = (particles[j].py / (particles[j].m*SPEED_OF_LIGHT)) + potenziale[0].ey;
+        I2 = particles[j].pz / (particles[j].m*SPEED_OF_LIGHT);
+        I3 = gamma - particles[j].px / (particles[j].m*SPEED_OF_LIGHT);
 
 
 
         outputstream
           << setw(12) << i + 1 << "\t"
-          << setprecision(14) << setw(16) << particles[j].getParticleX() << "\t"
-          << setw(16) << particles[j].getParticleY() << "\t"
-          << setw(16) << particles[j].getParticleZ() << "\t"
+          << setprecision(14) << setw(16) << particles[j].x << "\t"
+          << setw(16) << particles[j].y << "\t"
+          << setw(16) << particles[j].z << "\t"
           // << setw(16) << particles[j].getParticleCell() << "\t"
-          << setw(16) << particles[j].getParticlePX() << "\t"
-          << setw(16) << particles[j].getParticlePY() << "\t"
-          << setw(16) << particles[j].getParticlePZ() << "\t"
+          << setw(16) << particles[j].px << "\t"
+          << setw(16) << particles[j].py << "\t"
+          << setw(16) << particles[j].pz << "\t"
           << setw(16) << zeta << "\t"
-          << setw(16) << potenziale[0].getEy() << "\t"
+          << setw(16) << potenziale[0].ey << "\t"
           << setw(16) << I1 << "\t"
           << setw(16) << I2 << "\t"
           << setw(16) << I3 << endl;
@@ -2933,65 +2913,65 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
 
         /*
         //UPDATE CAMPI ATTORNO ALLA NUOVA POSIZIONE DELLA PARTICELLA  (al momento non li evolve, il set li pone pari al get precedente)
-        gridX = (int) (particles[j].getParticleX()/data.getDeltaX());   //il punto di griglia lungo l'asse x piu` vicino all'origine
-        gridY = (int) (particles[j].getParticleY()/data.getDeltaY());   //il punto di griglia lungo l'asse y piu` vicino all'origine
-        gridZ = (int) (particles[j].getParticleZ()/data.getDeltaZ());   //il punto di griglia lungo l'asse z piu` vicino all'origine
+        gridX = (int) (particles[j].x/data.deltaX);   //il punto di griglia lungo l'asse x piu` vicino all'origine
+        gridY = (int) (particles[j].y/data.deltaY);   //il punto di griglia lungo l'asse y piu` vicino all'origine
+        gridZ = (int) (particles[j].z/data.deltaZ);   //il punto di griglia lungo l'asse z piu` vicino all'origine
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEx() );       // primo punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ex );       // primo punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEx() );   // secondo punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ex );   // secondo punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bz );
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEx() );   // terzo punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ex );   // terzo punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );   // quarto punto
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEz() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getBx() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getBy() );
-        campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getBz() );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );   // quarto punto
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ey );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ez );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).bx );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).by );
+        campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at(gridZ * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEx() );   // quinto punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ex );   // quinto punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEx() );   // sesto punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getEz() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + gridY * data.getNgridPointsX() + (gridX+1)).getBz() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ex );   // sesto punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ey );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).ez );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bx );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).by );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + gridY * data.nGridPointsX + (gridX+1)).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEx() );   // settimo punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getEz() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBy() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + gridX).getBz() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ex );   // settimo punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ey );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).ez );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bx );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).by );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + gridX).bz );
 
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );   // ottavo punto
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
-        campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.getNgridPointsX() * data.getNgridPointsY() + (gridY+1) * data.getNgridPointsX() + (gridX+1)).getEx() );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );   // ottavo punto
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setEz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBx( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBy( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
+        campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).setBz( campoSuPuntiGriglia.at((gridZ+1) * data.nGridPointsX * data.nGridPointsY + (gridY+1) * data.nGridPointsX + (gridX+1)).ex );
         */
       }
     }
@@ -3002,14 +2982,14 @@ void evolveLPF4_withgrid(Data data, vector<Particle> &particles, vector<Field> &
 void evolveRK4(Data data, Particle particle, Field fieldOnParticle, vector<Particle> &dx2, vector<Particle> &x2)
 {
   Particle dx, dx2a, x2a;
-  double gamma = sqrt(1 + pow(particle.getParticlePX(), 2) + pow(particle.getParticlePY(), 2) + pow(particle.getParticlePZ(), 2));
+  double gamma = sqrt(1 + pow(particle.px, 2) + pow(particle.py, 2) + pow(particle.pz, 2));
 
-  dx.setParticleX(particle.getParticlePX() / (gamma * particle.getParticleM()));
-  dx.setParticleY(particle.getParticlePY() / (gamma * particle.getParticleM()));
-  dx.setParticleZ(particle.getParticlePZ() / (gamma * particle.getParticleM()));
-  dx.setParticlePX(particle.getParticleQ() * fieldOnParticle.getEx() + particle.getParticleQ() * dx.getParticleY() * fieldOnParticle.getBz() - particle.getParticleQ() * dx.getParticleZ() * fieldOnParticle.getBy());  //CONTROLLARE I SEGNI!!!!
-  dx.setParticlePY(particle.getParticleQ() * fieldOnParticle.getEy() + particle.getParticleQ() * dx.getParticleZ() * fieldOnParticle.getBx() - particle.getParticleQ() * dx.getParticleX() * fieldOnParticle.getBz());
-  dx.setParticlePZ(particle.getParticleQ() * fieldOnParticle.getEz() + particle.getParticleQ() * dx.getParticleX() * fieldOnParticle.getBy() - particle.getParticleQ() * dx.getParticleY() * fieldOnParticle.getBx());
+  dx.setParticleX(particle.px / (gamma * particle.m));
+  dx.setParticleY(particle.py / (gamma * particle.m));
+  dx.setParticleZ(particle.pz / (gamma * particle.m));
+  dx.setParticlePX(particle.q * fieldOnParticle.ex + particle.q * dx.y * fieldOnParticle.bz - particle.q * dx.z * fieldOnParticle.by);
+  dx.setParticlePY(particle.q * fieldOnParticle.ey + particle.q * dx.z * fieldOnParticle.bx - particle.q * dx.x * fieldOnParticle.bz);
+  dx.setParticlePZ(particle.q * fieldOnParticle.ez + particle.q * dx.x * fieldOnParticle.by - particle.q * dx.y * fieldOnParticle.bx);
 
   //RIEMPIE dx2 per il metodo RK4 con il dx del primo passo
   dx2a = dx;
@@ -3017,12 +2997,12 @@ void evolveRK4(Data data, Particle particle, Field fieldOnParticle, vector<Parti
 
 
   //RIEMPIE x2 con le posizioni avanzate di particles[i] dopo il primo passo
-  x2a.setParticleX(particle.getParticleX() + dx.getParticleX() * (data.getDeltaT()*0.5));
-  x2a.setParticleY(particle.getParticleY() + dx.getParticleY() * (data.getDeltaT()*0.5));
-  x2a.setParticleZ(particle.getParticleZ() + dx.getParticleZ() * (data.getDeltaT()*0.5));
-  x2a.setParticlePX(particle.getParticlePX() + dx.getParticlePX() *  (data.getDeltaT()*0.5));
-  x2a.setParticlePY(particle.getParticlePY() + dx.getParticlePY() *  (data.getDeltaT()*0.5));
-  x2a.setParticlePZ(particle.getParticlePZ() + dx.getParticlePZ() *  (data.getDeltaT()*0.5));
+  x2a.setParticleX(particle.x + dx.x * (data.dt*0.5));
+  x2a.setParticleY(particle.y + dx.y * (data.dt*0.5));
+  x2a.setParticleZ(particle.z + dx.z * (data.dt*0.5));
+  x2a.setParticlePX(particle.px + dx.px *  (data.dt*0.5));
+  x2a.setParticlePY(particle.py + dx.py *  (data.dt*0.5));
+  x2a.setParticlePZ(particle.pz + dx.pz *  (data.dt*0.5));
 
   x2.push_back(x2a);
 }
@@ -3037,53 +3017,53 @@ void evolveLPF(Data data, Particle &particle, double dtp, double dtx)
   Field *campoSuPunto;
   campoSuPunto = new Field[1];
 
-  gamma = sqrt(1. + pow(particle.getParticlePX(), 2) + pow(particle.getParticlePY(), 2) + pow(particle.getParticlePZ(), 2));
+  gamma = sqrt(1. + pow(particle.px, 2) + pow(particle.py, 2) + pow(particle.pz, 2));
   gamma_inv = 1.0 / gamma;
 
-  particle.setParticleX(particle.getParticleX() + dtx * particle.getParticlePX() * gamma_inv);
-  particle.setParticleY(particle.getParticleY() + dtx * particle.getParticlePY() * gamma_inv);
-  particle.setParticleZ(particle.getParticleZ() + dtx * particle.getParticlePZ() * gamma_inv);
+  particle.setParticleX(particle.x + dtx * particle.px * gamma_inv);
+  particle.setParticleY(particle.y + dtx * particle.py * gamma_inv);
+  particle.setParticleZ(particle.z + dtx * particle.pz * gamma_inv);
 
   data.aumentaT(dtx);
 
   calcolaCampoAnalitico1DSuParticella(data, particle, *campoSuPunto);
 
   //pstar = p(n) + Q * E(n+1/2) * DeltaT/2
-  pstar.setParticlePX(particle.getParticlePX() + 0.5 * dtp * particle.getParticleQ() * (*campoSuPunto).getEx());
-  pstar.setParticlePY(particle.getParticlePY() + 0.5 * dtp * particle.getParticleQ() * (*campoSuPunto).getEy());
-  pstar.setParticlePZ(particle.getParticlePZ() + 0.5 * dtp * particle.getParticleQ() * (*campoSuPunto).getEz());
-  gamma = sqrt(1. + pow(pstar.getParticlePX(), 2) + pow(pstar.getParticlePY(), 2) + pow(pstar.getParticlePZ(), 2));
+  pstar.setParticlePX(particle.px + 0.5 * dtp * particle.q * (*campoSuPunto).ex);
+  pstar.setParticlePY(particle.py + 0.5 * dtp * particle.q * (*campoSuPunto).ey);
+  pstar.setParticlePZ(particle.pz + 0.5 * dtp * particle.q * (*campoSuPunto).ez);
+  gamma = sqrt(1. + pow(pstar.px, 2) + pow(pstar.py, 2) + pow(pstar.pz, 2));
   gamma_inv = 1.0 / gamma;
 
   //b = (DeltaT/2) * Q * B(n+1/2) / gamma(aggiornato al pstar)
-  b.setBx(0.5 * dtp * (*campoSuPunto).getBx() * particle.getParticleQ() * gamma_inv);
-  b.setBy(0.5 * dtp * (*campoSuPunto).getBy() * particle.getParticleQ() * gamma_inv);
-  b.setBz(0.5 * dtp * (*campoSuPunto).getBz() * particle.getParticleQ() * gamma_inv);
-  b2 = pow(b.getBx(), 2) + pow(b.getBy(), 2) + pow(b.getBz(), 2);
+  b.setBx(0.5 * dtp * (*campoSuPunto).bx * particle.q * gamma_inv);
+  b.setBy(0.5 * dtp * (*campoSuPunto).by * particle.q * gamma_inv);
+  b.setBz(0.5 * dtp * (*campoSuPunto).bz * particle.q * gamma_inv);
+  b2 = pow(b.bx, 2) + pow(b.by, 2) + pow(b.bz, 2);
   b2 += 1.0;
 
   /****************************************************************************
   //p(n+1/2) = [pstar + pstar x b + (pstar x b) * b] / b2   SECONDO TURCHETTI  (ma i conti analitici diconon che e` sbagliato, anche perche' l'ultimo termine e` uno scalare!)
-  pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + (pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ()) * b.getBx() ) / b2 );
-  pHalfAdvanced.setParticlePY( (pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + (pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX()) * b.getBy() ) / b2 );
-  pHalfAdvanced.setParticlePZ( (pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + (pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY()) * b.getBz() ) / b2 );
+  pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz - b.by * pstar.pz + (pstar.py * b.bz - b.by * pstar.pz) * b.bx ) / b2 );
+  pHalfAdvanced.setParticlePY( (pstar.py + pstar.pz * b.bx - b.bz * pstar.px + (pstar.pz * b.bx - b.bz * pstar.px) * b.by ) / b2 );
+  pHalfAdvanced.setParticlePZ( (pstar.pz + pstar.px * b.by - b.bx * pstar.py + (pstar.px * b.by - b.bx * pstar.py) * b.bz ) / b2 );
   ****************************************************************************/
 
   //  /****************************************************************************
     //p(n+1/2) = [pstar + pstar x b + b x (pstar x b)] / b2   SECONDO LONDRILLO
-  pHalfAdvanced.setParticlePX((pstar.getParticlePX() + pstar.getParticlePY() * b.getBz() - b.getBy() * pstar.getParticlePZ() + b.getBx() * pstar.getParticlePX() * b.getBx()) / b2);
-  pHalfAdvanced.setParticlePY((pstar.getParticlePY() + pstar.getParticlePZ() * b.getBx() - b.getBz() * pstar.getParticlePX() + b.getBy() * pstar.getParticlePY() * b.getBy()) / b2);
-  pHalfAdvanced.setParticlePZ((pstar.getParticlePZ() + pstar.getParticlePX() * b.getBy() - b.getBx() * pstar.getParticlePY() + b.getBz() * pstar.getParticlePZ() * b.getBz()) / b2);
+  pHalfAdvanced.setParticlePX((pstar.px + pstar.py * b.bz - b.by * pstar.pz + b.bx * pstar.px * b.bx) / b2);
+  pHalfAdvanced.setParticlePY((pstar.py + pstar.pz * b.bx - b.bz * pstar.px + b.by * pstar.py * b.by) / b2);
+  pHalfAdvanced.setParticlePZ((pstar.pz + pstar.px * b.by - b.bx * pstar.py + b.bz * pstar.pz * b.bz) / b2);
   //  ****************************************************************************/
 
     /****************************************************************************
     //p(n+1/2) = [pstar + pstar x b] / b2   COME IMPLEMENTATO DA TURCHETTI NEL CODICE
-    pHalfAdvanced.setParticlePX( (pstar.getParticlePX() + pstar.getParticlePY() * b.getBz()) / b2 );
-    pHalfAdvanced.setParticlePY( (pstar.getParticlePY() - pstar.getParticlePX() * b.getBz()) / b2 );
+    pHalfAdvanced.setParticlePX( (pstar.px + pstar.py * b.bz) / b2 );
+    pHalfAdvanced.setParticlePY( (pstar.py - pstar.px * b.bz) / b2 );
     pHalfAdvanced.setParticlePZ( 0. );  //per come ho strutturato i pacchetti d'onda su z non dovrebbe succedere nulla e quindi lo fisso io a zero.
     ****************************************************************************/
 
-  particle.setParticlePX(2.0 * pHalfAdvanced.getParticlePX() - particle.getParticlePX());
-  particle.setParticlePY(2.0 * pHalfAdvanced.getParticlePY() - particle.getParticlePY());
-  particle.setParticlePZ(2.0 * pHalfAdvanced.getParticlePZ() - particle.getParticlePZ());
+  particle.setParticlePX(2.0 * pHalfAdvanced.px - particle.px);
+  particle.setParticlePY(2.0 * pHalfAdvanced.py - particle.py);
+  particle.setParticlePZ(2.0 * pHalfAdvanced.pz - particle.pz);
 }

@@ -20,12 +20,6 @@
     along with PICcol.  If not, see <http://www.gnu.org/licenses/>.
 **************************************************************************/
 
-#define C 1.00
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846264338327
-#endif
-
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -35,6 +29,12 @@
 
 #include "filler.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327
+#endif
+
+constexpr double SPEED_OF_LIGHT = 1.0;
+
 using namespace std;
 
 void calcolaCampoAnalitico1DSuParticelle(Data data, vector<Particle>& particelle, vector<Field>& campoSuParticelle)
@@ -42,7 +42,7 @@ void calcolaCampoAnalitico1DSuParticelle(Data data, vector<Particle>& particelle
     Field* campoTemp;
     campoTemp = new Field[1];
 
-    for (int i = 0; i < data.getNelectrons(); i++) {
+    for (int i = 0; i < data.n_electrons; i++) {
         calcolaCampoAnalitico1DSuParticella(data, particelle[i], *campoTemp);
         campoSuParticelle.push_back(*campoTemp);
     }
@@ -67,13 +67,13 @@ void riempiPuntiGrigliaConCampoAnalitico1D(Data data, vector<Field>& campoSuPunt
     campoTemp = new Field[1];
 
     Particle particellaTemp;
-    //  for (int k = 0; k < data.getNgridPointsZ(); k++)
+    //  for (int k = 0; k < data.nGridPointsZ; k++)
     //  {
-    for (int j = 0; j < data.getNgridPointsY(); j++) {
-        for (int i = 0; i < data.getNgridPointsX(); i++) {
-            particellaTemp.setParticleX((i - 1) * data.getDeltaX());
-            particellaTemp.setParticleY((j - 1) * data.getDeltaY());
-            //        particellaTemp.setParticleZ((k-1)*data.getDeltaZ());
+    for (int j = 0; j < data.nGridPointsY; j++) {
+        for (int i = 0; i < data.nGridPointsX; i++) {
+            particellaTemp.setParticleX((i - 1) * data.deltaX);
+            particellaTemp.setParticleY((j - 1) * data.deltaY);
+            //        particellaTemp.setParticleZ((k-1)*data.deltaZ);
             particellaTemp.setParticleZ(0.);
             calcolaCampoAnalitico1DSuParticella(data, particellaTemp, *campoTemp);
             campoSuPuntiGriglia.push_back(*campoTemp);
@@ -88,13 +88,13 @@ void riempiPuntiGrigliaConPotenzialeAnalitico1D(Data data, vector<Field>& campoS
     campoTemp = new Field[1];
 
     Particle particellaTemp;
-    //  for (int k = 0; k < data.getNgridPointsZ(); k++)
+    //  for (int k = 0; k < data.nGridPointsZ; k++)
     //  {
-    for (int j = 0; j < data.getNgridPointsY(); j++) {
-        for (int i = 0; i < data.getNgridPointsX(); i++) {
-            particellaTemp.setParticleX((i - 1) * data.getDeltaX());
-            particellaTemp.setParticleY((j - 1) * data.getDeltaY());
-            //        particellaTemp.setParticleZ((k-1)*data.getDeltaZ());
+    for (int j = 0; j < data.nGridPointsY; j++) {
+        for (int i = 0; i < data.nGridPointsX; i++) {
+            particellaTemp.setParticleX((i - 1) * data.deltaX);
+            particellaTemp.setParticleY((j - 1) * data.deltaY);
+            //        particellaTemp.setParticleZ((k-1)*data.deltaZ);
             particellaTemp.setParticleZ(0.);
             calcolaPotenzialeAnalitico1DSuParticella(data, particellaTemp, *campoTemp);
             campoSuPuntiGriglia.push_back(*campoTemp);
@@ -108,15 +108,15 @@ void calcolaCampoAnalitico1DSuParticella(Data data, Particle particella, Field& 
     //  /****************************************************************
     // PACCHETTO D'ONDA
     double f = 0., Amp = 0.;
-    double tau = 5. * 2. * M_PI / data.getK();
+    double tau = 5. * 2. * M_PI / data.k;
     double x0 = -1.1 * tau;
-    double arg = (particella.getParticleX() - C * data.getT() - x0) / tau;
+    double arg = (particella.x - SPEED_OF_LIGHT * data.t - x0) / tau;
     if (abs(arg) < 1) {
         Amp = pow(cos(arg * 0.5 * M_PI), 2);
-        f = -data.getK() * sin(data.getK() * (particella.getParticleX() - C * data.getT())) * Amp
-            - (0.5 * M_PI / tau) * cos(data.getK() * (particella.getParticleX() - C * data.getT())) * sin(M_PI * (particella.getParticleX() - C * data.getT() - x0) / tau);
+        f = -data.k * sin(data.k * (particella.x - SPEED_OF_LIGHT * data.t)) * Amp
+            - (0.5 * M_PI / tau) * cos(data.k * (particella.x - SPEED_OF_LIGHT * data.t)) * sin(M_PI * (particella.x - SPEED_OF_LIGHT * data.t - x0) / tau);
     }
-    f *= data.getA();
+    f *= data.A;
 
     campoSuParticella.setEx(0.);
     campoSuParticella.setEz(0.);
@@ -134,16 +134,16 @@ void calcolaCampoAnalitico1DSuParticella(Data data, Particle particella, Field& 
     double Ak = 2*M_PI;
     double ell = 5.;
     double beta = M_PI/(2*ell);  // non la capisco e quindi l'ho commentata e ridefinita pari a 1 sotto!
-    double arg = beta * (particella.getParticleX() - x_foc - data.getT());
+    double arg = beta * (particella.x - x_foc - data.t);
     if (abs(arg) < (0.5*M_PI))
     {
       Amp = pow(cos(arg),2);
-      f = cos (Ak * (particella.getParticleX() - data.getT())) * Amp;
-      fp = -Ak * sin (Ak * (particella.getParticleX() - data.getT())) * Amp;
-      fp -= beta * cos (Ak * (particella.getParticleX() - data.getT())) * sin(2*arg);
+      f = cos (Ak * (particella.x - data.t)) * Amp;
+      fp = -Ak * sin (Ak * (particella.x - data.t)) * Amp;
+      fp -= beta * cos (Ak * (particella.x - data.t)) * sin(2*arg);
     }
-    f *= data.getA();
-    fp *= data.getA();
+    f *= data.A;
+    fp *= data.A;
 
     campoSuParticella.setEx(0.);
     campoSuParticella.setEz(0.);
@@ -161,8 +161,8 @@ void calcolaCampoAnalitico1DSuParticella(Data data, Particle particella, Field& 
     campoSuParticella.setBx(0.);
     campoSuParticella.setBy(0.);
 
-    campoSuParticella.setEy(- data.getK() * data.getA() * sin (data.getK() * (particella.getParticleX() - C * data.getT())));
-    campoSuParticella.setBz(campoSuParticella.getEy());
+    campoSuParticella.setEy(- data.k * data.A * sin (data.k * (particella.x - SPEED_OF_LIGHT * data.t)));
+    campoSuParticella.setBz(campoSuParticella.ey);
     ****************************************************************/
 
     /****************************************************************
@@ -172,8 +172,8 @@ void calcolaCampoAnalitico1DSuParticella(Data data, Particle particella, Field& 
     campoSuParticella.setBx(0.);
     campoSuParticella.setBz(0.);
 
-    campoSuParticella.setEx(- data.getK() * data.getA() * sin (data.getK() * (particella.getParticleZ() - C * data.getT())));
-    campoSuParticella.setBy(campoSuParticella.getEx());
+    campoSuParticella.setEx(- data.k * data.A * sin (data.k * (particella.z - SPEED_OF_LIGHT * data.t)));
+    campoSuParticella.setBy(campoSuParticella.ex);
     ****************************************************************/
 
     /****************************************************************
@@ -191,10 +191,10 @@ void calcolaPotenzialeAnalitico1DSuParticella(Data data, Particle particella, Fi
     double f = 0., Amp = 0.;
     double tau = 5. * 2. * M_PI / data.k;
     double x0 = -1.1 * tau;
-    double arg = (particella.x - C * data.t - x0) / tau;
+    double arg = (particella.x - SPEED_OF_LIGHT * data.t - x0) / tau;
     if (abs(arg) < 1) {
         Amp = pow(cos(arg * 0.5 * M_PI), 2);
-        f = cos(data.k * (particella.x - C * data.t)) * Amp;
+        f = cos(data.k * (particella.x - SPEED_OF_LIGHT * data.t)) * Amp;
     }
     f *= data.A;
 
@@ -206,33 +206,33 @@ void calcolaPotenzialeAnalitico1DSuParticella(Data data, Particle particella, Fi
     potenzialeSuParticella.bz = 0.;
 
     /****************************************************************
-  // POTENZIALE PER PACCHETTO D'ONDA (TURCHETTI)
-  double Amp, f=0., fp=0.;
-  double x_foc = M_PI;
-  double Ak = 2*M_PI;
-  double ell = 5.;
-  double beta = M_PI/(2*ell);
-  double arg = beta * (particella.getParticleX() - x_foc - data.getT());
-  if (abs(arg) < (0.5*M_PI))
-  {
-    Amp = pow(cos(arg),2);
-    f = cos (Ak * (particella.getParticleX() - data.getT())) * Amp;
-    fp = -Ak * sin (Ak * (particella.getParticleX() - data.getT())) * Amp;
-    fp -= beta * cos (Ak * (particella.getParticleX() - data.getT())) * sin(2*arg);
-  }
-  f *= data.getA();
-  fp *= data.getA();
-  potenzialeSuParticella.setEy(fp);
-  potenzialeSuParticella.setEx(0.);
-  potenzialeSuParticella.setEz(0.);
-  potenzialeSuParticella.setBx(0.);
-  potenzialeSuParticella.setBy(0.);
-  potenzialeSuParticella.setBz(0.);
-  ****************************************************************/
+    // POTENZIALE PER PACCHETTO D'ONDA (TURCHETTI)
+    double Amp, f=0., fp=0.;
+    double x_foc = M_PI;
+    double Ak = 2*M_PI;
+    double ell = 5.;
+    double beta = M_PI/(2*ell);
+    double arg = beta * (particella.x - x_foc - data.t);
+    if (abs(arg) < (0.5*M_PI))
+    {
+      Amp = pow(cos(arg),2);
+      f = cos (Ak * (particella.x - data.t)) * Amp;
+      fp = -Ak * sin (Ak * (particella.x - data.t)) * Amp;
+      fp -= beta * cos (Ak * (particella.x - data.t)) * sin(2*arg);
+    }
+    f *= data.A;
+    fp *= data.A;
+    potenzialeSuParticella.setEy(fp);
+    potenzialeSuParticella.setEx(0.);
+    potenzialeSuParticella.setEz(0.);
+    potenzialeSuParticella.setBx(0.);
+    potenzialeSuParticella.setBy(0.);
+    potenzialeSuParticella.setBz(0.);
+    ****************************************************************/
 
     /****************************************************************
     // POTENZIALE PER ONDA PIANA INFINITA
-    potenzialeSuParticella.setEy(data.getA() * cos (data.getK() * (particella.getParticleX() - C * data.getT())));
+    potenzialeSuParticella.setEy(data.A * cos (data.k * (particella.x - SPEED_OF_LIGHT * data.t)));
     potenzialeSuParticella.setEx(0.);
     potenzialeSuParticella.setEz(0.);
     potenzialeSuParticella.setBx(0.);
@@ -242,7 +242,7 @@ void calcolaPotenzialeAnalitico1DSuParticella(Data data, Particle particella, Fi
 
     /****************************************************************
     // POTENZIALE PER ONDA PIANA INFINITA CONFORME ALLE SCELTE DELLO SGATTO
-    potenzialeSuParticella.setEx(data.getA() * cos (data.getK() * (particella.getParticleZ() - C * data.getT())));
+    potenzialeSuParticella.setEx(data.A * cos (data.k * (particella.z - SPEED_OF_LIGHT * data.t)));
     potenzialeSuParticella.setEy(0.);
     potenzialeSuParticella.setEz(0.);
     potenzialeSuParticella.setBx(0.);
@@ -259,27 +259,27 @@ void creaVettoreParticelle(Data data, vector<Particle>& particelle)
 
     if (data.particleFillingMethod == 1) {
         for (int i = 0; i < data.n_electrons; i++) {
-            randomX = rand() * normalizza * data.dimX();
+            randomX = rand() * normalizza * data.dimX;
             particellaTest.x = randomX;
             if (data.n_dim == 2 || data.n_dim == 3) {
-                randomY = rand() * normalizza * data.getDimY();
+                randomY = rand() * normalizza * data.dimY;
                 particellaTest.setParticleY(randomY);
             } else
                 particellaTest.setParticleY(0.);
-            if (data.getNdim() == 3) {
-                randomZ = rand() * normalizza * data.getDimZ();
+            if (data.n_dim == 3) {
+                randomZ = rand() * normalizza * data.dimZ;
                 particellaTest.setParticleZ(randomZ);
             } else
                 particellaTest.setParticleZ(0.);
 
-            randomX = rand() * normalizza * data.getThermalV();
+            randomX = rand() * normalizza * data.thermal_vel;
             particellaTest.setParticlePX(randomX);
-            if (data.getNdim() == 2 || data.getNdim() == 3) {
-                randomY = rand() * normalizza * data.getThermalV();
+            if (data.n_dim == 2 || data.n_dim == 3) {
+                randomY = rand() * normalizza * data.thermal_vel;
                 particellaTest.setParticlePY(randomY);
             }
-            if (data.getNdim() == 3) {
-                randomZ = rand() * normalizza * data.getThermalV();
+            if (data.n_dim == 3) {
+                randomZ = rand() * normalizza * data.thermal_vel;
                 particellaTest.setParticlePZ(randomZ);
             }
 
@@ -288,19 +288,19 @@ void creaVettoreParticelle(Data data, vector<Particle>& particelle)
             particelle.push_back(particellaTest);
         }
     } else if (data.particleFillingMethod == 2) {
-        for (int i = 0; i < data.getNelectrons(); i++) {
+        for (int i = 0; i < data.n_electrons; i++) {
             particellaTest.setParticleX(0.);
             particellaTest.setParticleY(0.);
             particellaTest.setParticleZ(0.);
 
-            randomX = rand() * normalizza * data.getThermalV();
+            randomX = rand() * normalizza * data.thermal_vel;
             particellaTest.setParticlePX(randomX);
-            if (data.getNdim() == 2 || data.getNdim() == 3) {
-                randomY = rand() * normalizza * data.getThermalV();
+            if (data.n_dim == 2 || data.n_dim == 3) {
+                randomY = rand() * normalizza * data.thermal_vel;
                 particellaTest.setParticlePY(randomY);
             }
-            if (data.getNdim() == 3) {
-                randomZ = rand() * normalizza * data.getThermalV();
+            if (data.n_dim == 3) {
+                randomZ = rand() * normalizza * data.thermal_vel;
                 particellaTest.setParticlePZ(randomZ);
             }
 

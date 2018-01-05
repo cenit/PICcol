@@ -85,49 +85,49 @@ int Data::fillParametersFromFile(char* nomefile, ofstream& outputLOG)
 
     //filename = parameters.has_member("phasespace_file") ? parameters["phasespace_file"].as<string>() : "input.dat";
 
-    setNelectrons_UNSECURED(parameters.has_member("Nelectrons") ? parameters["Nelectrons"].as<int>() : 0);
-    outputLOG << "Numero particelle da simulare: " << getNelectrons() << endl;
+    setNelectrons(parameters.has_member("Nelectrons") ? parameters["Nelectrons"].as<int>() : 0);
+    outputLOG << "Numero particelle da simulare: " << n_electrons << endl;
 
-    setNdim_UNSECURED(parameters.has_member("Ndim") ? parameters["Ndim"].as<int>() : 0);
-    outputLOG << "Sistema " << getNdim() << "D" << endl;
+    setNdim(parameters.has_member("Ndim") ? parameters["Ndim"].as<int>() : 0);
+    outputLOG << "Sistema " << n_dim << "D" << endl;
 
-    setThermalV_UNSECURED(parameters.has_member("ThermalV") ? parameters["ThermalV"].as<double>() : 0.0);
-    outputLOG << "Velocita' termica: " << getThermalV() << endl;
+    setThermalV(parameters.has_member("ThermalV") ? parameters["ThermalV"].as<double>() : 0.0);
+    outputLOG << "Velocita' termica: " << thermal_vel << endl;
 
     double DimX = parameters.has_member("DimX") ? parameters["DimX"].as<double>() : 0.0;
     double dx = parameters.has_member("dx") ? parameters["dx"].as<double>() : 0.0;
-    setXaxis_UNSECURED(DimX, dx);
-    outputLOG << "Parametri asse x: dimX: " << getDimX() << ", dx: " << getDeltaX() << endl;
+    setXaxis(DimX, dx);
+    outputLOG << "Parametri asse x: dimX: " << dimX << ", dx: " << deltaX << endl;
 
     double DimY = parameters.has_member("DimY") ? parameters["DimY"].as<double>() : 0.0;
     double dy = parameters.has_member("dy") ? parameters["dy"].as<double>() : 0.0;
-    setXaxis_UNSECURED(DimY, dy);
-    outputLOG << "Parametri asse y: dimY: " << getDimY() << ", dy: " << getDeltaY() << endl;
+    setXaxis(DimY, dy);
+    outputLOG << "Parametri asse y: dimY: " << dimY << ", dy: " << deltaY << endl;
 
     double DimZ = parameters.has_member("DimZ") ? parameters["DimZ"].as<double>() : 0.0;
     double dz = parameters.has_member("dz") ? parameters["dz"].as<double>() : 0.0;
-    setXaxis_UNSECURED(DimZ, dz);
-    outputLOG << "Parametri asse z: dimZ: " << getDimZ() << ", dz: " << getDeltaZ() << endl;
+    setXaxis(DimZ, dz);
+    outputLOG << "Parametri asse z: dimZ: " << dimZ << ", dz: " << deltaZ << endl;
 
-    setInitialT_UNSECURED(parameters.has_member("InitialT") ? parameters["InitialT"].as<double>() : 0.0);
-    outputLOG << "t iniziale: " << getT() << endl;
+    setInitialT(parameters.has_member("InitialT") ? parameters["InitialT"].as<double>() : 0.0);
+    outputLOG << "t iniziale: " << t << endl;
 
-    setDeltaT_UNSECURED(parameters.has_member("dt") ? parameters["dt"].as<double>() : 0.0);
-    outputLOG << "dt: " << getDeltaT() << endl;
+    setDeltaT(parameters.has_member("dt") ? parameters["dt"].as<double>() : 0.0);
+    outputLOG << "dt: " << dt << endl;
 
-    setNsteps_UNSECURED(parameters.has_member("nSteps") ? parameters["nSteps"].as<int>() : 0);
-    outputLOG << "nSteps: " << getNsteps() << endl;
+    setNsteps(parameters.has_member("nSteps") ? parameters["nSteps"].as<int>() : 0);
+    outputLOG << "nSteps: " << nSteps << endl;
 
-    setParticleFillingMethod_UNSECURED(parameters.has_member("ParticleFillingMethod") ? parameters["ParticleFillingMethod"].as<int>() : 0);
-    if (getParticleFillingMethod() == 1)
+    setParticleFillingMethod(parameters.has_member("ParticleFillingMethod") ? parameters["ParticleFillingMethod"].as<int>() : 0);
+    if (particleFillingMethod == 1)
         outputLOG << "Generazione random particelle" << endl;
-    else if (getParticleFillingMethod() == 2)
+    else if (particleFillingMethod == 2)
         outputLOG << "Particelle generate in 0,0,0" << endl;
     else
         outputLOG << "Metodo non valido" << endl;
 
-    setEvoType_UNSECURED(parameters.has_member("EvoType") ? parameters["EvoType"].as<int>() : 0);
-    switch (getEvoType()) {
+    setEvoType(parameters.has_member("EvoType") ? parameters["EvoType"].as<int>() : 0);
+    switch (evoType) {
     case 1:
         outputLOG << "Distribuzione campi su particelle in un istante definito" << endl;
     case 2:
@@ -157,31 +157,31 @@ int Data::fillParametersFromFile(char* nomefile, ofstream& outputLOG)
         break;
     }
 
-    setA_UNSECURED(parameters.has_member("A") ? parameters["A"].as<double>() : 0.0);
-    setK_UNSECURED(parameters.has_member("K") ? parameters["K"].as<double>() : 0.0);
-    outputLOG << "E = -" << getA() << " " << getK() << " sin[" << getK() << "(x - ct)]" << endl;
-    outputLOG << "A = " << getA() << " cos[" << getK() << "(x - ct)]" << endl;
+    setA(parameters.has_member("A") ? parameters["A"].as<double>() : 0.0);
+    setK(parameters.has_member("K") ? parameters["K"].as<double>() : 0.0);
+    outputLOG << "E = -" << A << " " << k << " sin[" << k << "(x - ct)]" << endl;
+    outputLOG << "A = " << A << " cos[" << k << "(x - ct)]" << endl;
     outputLOG << "Lettura parametri completata!" << endl;
     return 0;
 }
 
-void Data::setNelectrons_UNSECURED(int n_e)
+void Data::setNelectrons(int n_e)
 {
     n_electrons = n_e;
     n_ions = n_e;
 }
 
-void Data::setNdim_UNSECURED(int n_dims)
+void Data::setNdim(int n_dims)
 {
     n_dim = n_dims;
 }
 
-void Data::setThermalV_UNSECURED(double t_vel)
+void Data::setThermalV(double t_vel)
 {
     thermal_vel = t_vel;
 }
 
-void Data::setXaxis_UNSECURED(double dimensioneX, double dx)
+void Data::setXaxis(double dimensioneX, double dx)
 {
     dimX = dimensioneX;
     deltaX = dx;
@@ -193,7 +193,7 @@ void Data::setXaxis_UNSECURED(double dimensioneX, double dx)
     }
 }
 
-void Data::setYaxis_UNSECURED(double dimensioneY, double dy)
+void Data::setYaxis(double dimensioneY, double dy)
 {
     dimY = dimensioneY;
     deltaY = dy;
@@ -205,39 +205,39 @@ void Data::setYaxis_UNSECURED(double dimensioneY, double dy)
     }
 }
 
-void Data::setZaxis_UNSECURED(double dimensioneZ, double dz)
+void Data::setZaxis(double dimensioneZ, double dz)
 {
     dimZ = dimensioneZ;
     deltaZ = dz;
     nGridPointsZ = (int)((dimZ / deltaZ) + 2);
 }
 
-void Data::setEvoType_UNSECURED(int et)
+void Data::setEvoType(int et)
 {
     evoType = et;
 }
 
-void Data::setNsteps_UNSECURED(int ns)
+void Data::setNsteps(int ns)
 {
     nSteps = ns;
 }
 
-void Data::setDeltaT_UNSECURED(double deltaT)
+void Data::setDeltaT(double deltaT)
 {
     dt = deltaT;
 }
 
-void Data::setParticleFillingMethod_UNSECURED(int pfm)
+void Data::setParticleFillingMethod(int pfm)
 {
     particleFillingMethod = pfm;
 }
 
-void Data::setK_UNSECURED(double K)
+void Data::setK(double K)
 {
     k = K;
 }
 
-void Data::setA_UNSECURED(double a)
+void Data::setA(double a)
 {
     A = a;
 }
@@ -252,7 +252,7 @@ void Data::resettaT()
     t = 0.;
 }
 
-void Data::setInitialT_UNSECURED(double tempo)
+void Data::setInitialT(double tempo)
 {
     t = tempo;
 }
@@ -267,4 +267,74 @@ Particle::Particle()
     x = y = z = t = px = py = pz = pt = 0.;
 
     m = q = cell = 0;
+}
+
+void Field::setEx(double Ex)
+{
+    ex = Ex;
+}
+
+void Field::setEy(double Ey)
+{
+    ey = Ey;
+}
+
+void Field::setEz(double Ez)
+{
+    ez = Ez;
+}
+
+void Field::setBx(double Bx)
+{
+    bx = Bx;
+}
+
+void Field::setBy(double By)
+{
+    by = By;
+}
+
+void Field::setBz(double Bz)
+{
+    bz = Bz;
+}
+
+void Particle::setParticleX(double X)
+{
+    x = X;
+}
+
+void Particle::setParticleY(double Y)
+{
+    y = Y;
+}
+
+void Particle::setParticleZ(double Z)
+{
+    z = Z;
+}
+
+void Particle::setParticlePX(double PX)
+{
+    px = PX;
+}
+
+void Particle::setParticlePY(double PY)
+{
+    py = PY;
+}
+
+void Particle::setParticlePZ(double PZ)
+{
+    pz = PZ;
+}
+
+void Particle::setParticleQ(int Q)
+{
+    q = Q;
+}
+
+void Particle::setParticleM(int mass)
+{
+    m = mass;
 }

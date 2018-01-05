@@ -32,23 +32,23 @@ public:
     void setInputType(char*);
     int fillParametersFromFile(char*, std::ofstream&);
     void fillData();
-    void setNelectrons_UNSECURED(int);
-    void setNdim_UNSECURED(int);
-    void setThermalV_UNSECURED(double);
-    void setXaxis_UNSECURED(double, double);
-    void setYaxis_UNSECURED(double, double);
-    void setZaxis_UNSECURED(double, double);
-    void setNsteps_UNSECURED(int);
-    void setDeltaT_UNSECURED(double);
-    void setEvoType_UNSECURED(int);
-    void setParticleFillingMethod_UNSECURED(int);
+    void setNelectrons(int);
+    void setNdim(int);
+    void setThermalV(double);
+    void setXaxis(double, double);
+    void setYaxis(double, double);
+    void setZaxis(double, double);
+    void setNsteps(int);
+    void setDeltaT(double);
+    void setEvoType(int);
+    void setParticleFillingMethod(int);
 
-    void setK_UNSECURED(double);
-    void setA_UNSECURED(double);
+    void setK(double);
+    void setA(double);
 
     void aumentaT(double);
     void resettaT();
-    void setInitialT_UNSECURED(double);
+    void setInitialT(double);
 
     int inputType;
     int n_electrons;
@@ -73,12 +73,19 @@ public:
     double thermal_vel;
     double dt, t;
     int nSteps;
-    string filename;
+    std::string filename;
 };
 
 class Field {
 public:
     Field();
+    void setEx(double);
+    void setEy(double);
+    void setEz(double);
+    void setBx(double);
+    void setBy(double);
+    void setBz(double);
+
     double ex;
     double ey;
     double ez;
@@ -93,6 +100,15 @@ class Particle {
 public:
     Particle();
     Particle& operator*(const double);
+
+    void setParticleX(double);
+    void setParticleY(double);
+    void setParticleZ(double);
+    void setParticlePX(double);
+    void setParticlePY(double);
+    void setParticlePZ(double);
+    void setParticleQ(int);
+    void setParticleM(int);
 
     double x;
     double y;
