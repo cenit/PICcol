@@ -39,14 +39,14 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    /************************************************************
+  /************************************************************
     * INIZIALIZZAZIONE generatore random tramite seed temporale *
     ************************************************************/
-    time_t now;
-    time(&now);
-    srand((unsigned int)now);
+  time_t now;
+  time(&now);
+  srand((unsigned int)now);
 
-    /*************************************************************
+  /*************************************************************
     * INIZIALIZZAZIONE file di output                            *
     * - outputLOG conterra` i parametri dell'esecuzione corrente *
     *   ed apre in modalita` append il file log.txt              *
@@ -54,14 +54,14 @@ int main(int argc, char* argv[])
     *   particelle istante per istante e va a sovrascrivere ad   *
     *   ogni esecuzione del programma il file output.dat         *
     *************************************************************/
-    ofstream outputLOG("log.txt", fstream::app);
-    ofstream outputDATA("output.dat");
-    outputLOG << "------------------------------------------------------" << endl;
-    auto t = std::time(nullptr);
-    auto tm = *std::localtime(&t);
-    outputLOG << "Data e ora: " << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << endl;
+  ofstream outputLOG("log.txt", fstream::app);
+  ofstream outputDATA("output.dat");
+  outputLOG << "------------------------------------------------------" << endl;
+  auto t = std::time(nullptr);
+  auto tm = *std::localtime(&t);
+  outputLOG << "Data e ora: " << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << endl;
 
-    /************************************************************
+  /************************************************************
     * INIZIALIZZAZIONE fondamenti del codice:                   *
     * - "data", di tipo Data, contiene tutti i parametri che    *
     *   possono servire ad una funzione di questo codice per    *
@@ -72,33 +72,33 @@ int main(int argc, char* argv[])
     * - un vettore di campi calcolati nei nodi della griglia    *
     *   definita dall'utente e sovrimposta al sistema (celle)   *
     ************************************************************/
-    Data data;
-    vector<Particle> particelle;
-    vector<Field> campiSuParticelle;
-    vector<Field> campiSuGriglia;
+  Data data;
+  vector<Particle> particelle;
+  vector<Field> campiSuParticelle;
+  vector<Field> campiSuGriglia;
 
-    /************************************************************
+  /************************************************************
     * L'eseguibile legge l'input da un file json contenente     *
     * tutti i parametri necessari per l'esecuzione.             *
     * La sua assenza sulla riga di comando e` bloccante         *
     ************************************************************/
-    if (argc < 2) {
-        cout << "E` necessario specificare un file json contenente la configurazione della simulazione!" << endl;
-        exit(-1);
-    }
+  if (argc < 2) {
+    cout << "E` necessario specificare un file json contenente la configurazione della simulazione!" << endl;
+    exit(-1);
+  }
 
-    data.fillParametersFromFile(argv[1], outputLOG);
+  data.fillParametersFromFile(argv[1], outputLOG);
 
-    /*************************************************************
+  /*************************************************************
     * Ora il programma dovrebbe aver saputo "tutto" dall'utente  *
     * e pertanto genera il vettore iniziale delle particelle     *
     * seguendo i parametri impostati e solo nel caso non fosse   *
     * stato gia` definito e letto un file contenente questi dati *
     *************************************************************/
 
-    creaVettoreParticelle(data, particelle);
+  creaVettoreParticelle(data, particelle);
 
-    /*************************************************************
+  /*************************************************************
     * In base alle scelte che l'utente ha fatto, il programma:   *
     * - calcola l'evoluzione con un metodo runge-kutta del       *
     *   quarto ordine e un campo analitico predefinito           *
@@ -117,39 +117,39 @@ int main(int argc, char* argv[])
     * - altri metodi ancora non descritti in questo commento     *
     *************************************************************/
 
-    cout << "NB: la griglia costruita non viene utilizzata,\nserve solo per inserire inutilmente le particelle in una cella" << endl;
+  cout << "NB: la griglia costruita non viene utilizzata,\nserve solo per inserire inutilmente le particelle in una cella" << endl;
 
-    if (data.evoType == 1)
-        calcolaCampoInUnIstante(data, particelle, campiSuParticelle, outputDATA);
-    else if (data.evoType == 2)
-        calcolaEvoluzioneCampoSuParticelle(data, particelle, campiSuParticelle, outputDATA);
-    else if (data.evoType == 3)
-        evolveRK4_nogrid(data, particelle, campiSuParticelle, outputDATA);
-    else if (data.evoType == 4)
-        evolveRK4_withgrid_onthefly(data, particelle, campiSuParticelle, outputDATA);
-    else if (data.evoType == 5)
-        evolveRK4_withgrid(data, particelle, campiSuParticelle, campiSuGriglia, outputDATA);
-    else if (data.evoType == 6)
-        evolveLPF_nogrid(data, particelle, campiSuParticelle, outputDATA);
-    else if (data.evoType == 7)
-        evolveLPF_withgrid_onthefly(data, particelle, campiSuParticelle, outputDATA);
-    else if (data.evoType == 8)
-        evolveLPF_withgrid(data, particelle, campiSuParticelle, campiSuGriglia, outputDATA);
-    else if (data.evoType == 9)
-        evolveLPF4_nogrid(data, particelle, outputDATA);
-    else if (data.evoType == 10)
-        evolveLPF4_withgrid_onthefly(data, particelle, campiSuParticelle, outputDATA);
-    else if (data.evoType == 11)
-        evolveLPF4_withgrid(data, particelle, campiSuParticelle, campiSuGriglia, outputDATA);
-    else if (data.evoType == 12)
-        evolveLPF4_nogrid_TURCHETTI(data, particelle, campiSuParticelle, outputDATA);
+  if (data.evoType == 1)
+    calcolaCampoInUnIstante(data, particelle, campiSuParticelle, outputDATA);
+  else if (data.evoType == 2)
+    calcolaEvoluzioneCampoSuParticelle(data, particelle, campiSuParticelle, outputDATA);
+  else if (data.evoType == 3)
+    evolveRK4_nogrid(data, particelle, campiSuParticelle, outputDATA);
+  else if (data.evoType == 4)
+    evolveRK4_withgrid_onthefly(data, particelle, campiSuParticelle, outputDATA);
+  else if (data.evoType == 5)
+    evolveRK4_withgrid(data, particelle, campiSuParticelle, campiSuGriglia, outputDATA);
+  else if (data.evoType == 6)
+    evolveLPF_nogrid(data, particelle, campiSuParticelle, outputDATA);
+  else if (data.evoType == 7)
+    evolveLPF_withgrid_onthefly(data, particelle, campiSuParticelle, outputDATA);
+  else if (data.evoType == 8)
+    evolveLPF_withgrid(data, particelle, campiSuParticelle, campiSuGriglia, outputDATA);
+  else if (data.evoType == 9)
+    evolveLPF4_nogrid(data, particelle, outputDATA);
+  else if (data.evoType == 10)
+    evolveLPF4_withgrid_onthefly(data, particelle, campiSuParticelle, outputDATA);
+  else if (data.evoType == 11)
+    evolveLPF4_withgrid(data, particelle, campiSuParticelle, campiSuGriglia, outputDATA);
+  else if (data.evoType == 12)
+    evolveLPF4_nogrid_TURCHETTI(data, particelle, campiSuParticelle, outputDATA);
 
-    cout << "Esecuzione completata!" << endl;
+  cout << "Esecuzione completata!" << endl;
 
-    /*************************************************************
+  /*************************************************************
     * Chiusura dei file di log (log.txt) e dei dati (output.dat) *
     *************************************************************/
-    outputLOG.close();
-    outputDATA.close();
-    return 0;
+  outputLOG.close();
+  outputDATA.close();
+  return 0;
 }

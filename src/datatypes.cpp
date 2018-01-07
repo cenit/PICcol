@@ -1,7 +1,7 @@
 /*******************************************************************************
- * Copyright 2010-2018 Stefano Sinigardi * The program is distributed under the
- *terms of the GNU General Public License *
- *******************************************************************************/
+* Copyright 2010-2018 Stefano Sinigardi                                        *
+* The program is distributed under the terms of the GNU General Public License *
+*******************************************************************************/
 
 /**************************************************************************
     This file is part of PICcol.
@@ -32,7 +32,8 @@
 
 using namespace std;
 
-Data::Data() {
+Data::Data()
+{
   inputType = 0;
   n_electrons = 0;
   n_ions = 0;
@@ -61,7 +62,8 @@ Data::Data() {
   filename = "";
 }
 
-int Data::fillParametersFromFile(char *nomefile, ofstream &outputLOG) {
+int Data::fillParametersFromFile(char* nomefile, ofstream& outputLOG)
+{
   ifstream inputstreamParameters;
   jsoncons::json parameters;
   inputstreamParameters.open(nomefile);
@@ -70,67 +72,54 @@ int Data::fillParametersFromFile(char *nomefile, ofstream &outputLOG) {
     inputstreamParameters.close();
     try {
       parameters = jsoncons::json::parse_file(nomefile);
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       outputLOG << e.what() << std::endl;
       exit(-1);
     }
   }
 
   jsoncons::json empty_json;
-  jsoncons::json json_lattice_elements =
-      parameters.has_member("Magnetic_elements")
-          ? parameters["Magnetic_elements"]
-          : empty_json;
+  jsoncons::json json_lattice_elements = parameters.has_member("Magnetic_elements") ? parameters["Magnetic_elements"] : empty_json;
 
   // filename = parameters.has_member("phasespace_file") ?
   // parameters["phasespace_file"].as<string>() : "input.dat";
 
-  setNelectrons(parameters.has_member("Nelectrons")
-                    ? parameters["Nelectrons"].as<int>()
-                    : 0);
+  setNelectrons(parameters.has_member("Nelectrons") ? parameters["Nelectrons"].as<int>() : 0);
   outputLOG << "Numero particelle da simulare: " << n_electrons << endl;
 
   setNdim(parameters.has_member("Ndim") ? parameters["Ndim"].as<int>() : 0);
   outputLOG << "Sistema " << n_dim << "D" << endl;
 
-  setThermalV(parameters.has_member("ThermalV")
-                  ? parameters["ThermalV"].as<double>()
-                  : 0.0);
+  setThermalV(parameters.has_member("ThermalV") ? parameters["ThermalV"].as<double>() : 0.0);
   outputLOG << "Velocita' termica: " << thermal_vel << endl;
 
-  double DimX =
-      parameters.has_member("DimX") ? parameters["DimX"].as<double>() : 0.0;
+  double DimX = parameters.has_member("DimX") ? parameters["DimX"].as<double>() : 0.0;
   double dx = parameters.has_member("dx") ? parameters["dx"].as<double>() : 0.0;
   setXaxis(DimX, dx);
   outputLOG << "Parametri asse x: dimX: " << dimX << ", dx: " << deltaX << endl;
 
-  double DimY =
-      parameters.has_member("DimY") ? parameters["DimY"].as<double>() : 0.0;
+  double DimY = parameters.has_member("DimY") ? parameters["DimY"].as<double>() : 0.0;
   double dy = parameters.has_member("dy") ? parameters["dy"].as<double>() : 0.0;
   setXaxis(DimY, dy);
   outputLOG << "Parametri asse y: dimY: " << dimY << ", dy: " << deltaY << endl;
 
-  double DimZ =
-      parameters.has_member("DimZ") ? parameters["DimZ"].as<double>() : 0.0;
+  double DimZ = parameters.has_member("DimZ") ? parameters["DimZ"].as<double>() : 0.0;
   double dz = parameters.has_member("dz") ? parameters["dz"].as<double>() : 0.0;
   setXaxis(DimZ, dz);
   outputLOG << "Parametri asse z: dimZ: " << dimZ << ", dz: " << deltaZ << endl;
 
-  setInitialT(parameters.has_member("InitialT")
-                  ? parameters["InitialT"].as<double>()
-                  : 0.0);
+  setInitialT(parameters.has_member("InitialT") ? parameters["InitialT"].as<double>() : 0.0);
   outputLOG << "t iniziale: " << t << endl;
 
   setDeltaT(parameters.has_member("dt") ? parameters["dt"].as<double>() : 0.0);
   outputLOG << "dt: " << dt << endl;
 
-  setNsteps(parameters.has_member("nSteps") ? parameters["nSteps"].as<int>()
-                                            : 0);
+  setNsteps(parameters.has_member("nSteps") ? parameters["nSteps"].as<int>() : 0);
   outputLOG << "nSteps: " << nSteps << endl;
 
   setParticleFillingMethod(parameters.has_member("ParticleFillingMethod")
-                               ? parameters["ParticleFillingMethod"].as<int>()
-                               : 0);
+          ? parameters["ParticleFillingMethod"].as<int>()
+          : 0);
   if (particleFillingMethod == 1)
     outputLOG << "Generazione random particelle" << endl;
   else if (particleFillingMethod == 2)
@@ -138,37 +127,43 @@ int Data::fillParametersFromFile(char *nomefile, ofstream &outputLOG) {
   else
     outputLOG << "Metodo non valido" << endl;
 
-  setEvoType(parameters.has_member("EvoType") ? parameters["EvoType"].as<int>()
-                                              : 0);
+  setEvoType(parameters.has_member("EvoType") ? parameters["EvoType"].as<int>() : 0);
   switch (evoType) {
   case 1:
-    outputLOG << "Distribuzione campi su particelle in un istante definito"
-              << endl;
+    outputLOG << "Distribuzione campi su particelle in un istante definito" << endl;
+    break;
   case 2:
     outputLOG << "Evoluzione campo su una particella nel tempo" << endl;
+    break;
   case 3:
-    outputLOG << "Evoluzione RungeKutta4 no griglia (campo analitico calcolato "
-                 "sulla particella)"
-              << endl;
+    outputLOG << "Evoluzione RungeKutta4 no griglia (campo analitico calcolato sulla particella)" << endl;
+    break;
   case 4:
     outputLOG << "Evoluzione RungeKutta4 griglia on-the-fly" << endl;
+    break;
   case 5:
     outputLOG << "Evoluzione RungeKutta4 griglia persistente" << endl;
+    break;
   case 6:
     outputLOG << "Evoluzione Leapfrog2 no griglia" << endl;
+    break;
   case 7:
     outputLOG << "Evoluzione Leapfrog2 griglia on-the-fly" << endl;
+    break;
   case 8:
     outputLOG << "Evoluzione Leapfrog2 griglia persistente" << endl;
+    break;
   case 9:
     outputLOG << "Evoluzione Leapfrog4 no griglia" << endl;
+    break;
   case 10:
     outputLOG << "Evoluzione Leapfrog4 griglia on-the-fly" << endl;
+    break;
   case 11:
     outputLOG << "Evoluzione Leapfrog4 griglia persistente" << endl;
+    break;
   case 12:
-    outputLOG << "Evoluzione Leapfrog4 no griglia - algoritmo TURCHETTI"
-              << endl;
+    outputLOG << "Evoluzione Leapfrog4 no griglia - algoritmo TURCHETTI" << endl;
   default:
     outputLOG << "Evoluzione non riconosciuta" << endl;
     break;
@@ -182,7 +177,8 @@ int Data::fillParametersFromFile(char *nomefile, ofstream &outputLOG) {
   return 0;
 }
 
-void Data::setNelectrons(int n_e) {
+void Data::setNelectrons(int n_e)
+{
   n_electrons = n_e;
   n_ions = n_e;
 }
@@ -191,7 +187,8 @@ void Data::setNdim(int n_dims) { n_dim = n_dims; }
 
 void Data::setThermalV(double t_vel) { thermal_vel = t_vel; }
 
-void Data::setXaxis(double dimensioneX, double dx) {
+void Data::setXaxis(double dimensioneX, double dx)
+{
   dimX = dimensioneX;
   deltaX = dx;
   nGridPointsX = (int)((dimX / deltaX) + 1);
@@ -202,7 +199,8 @@ void Data::setXaxis(double dimensioneX, double dx) {
   }
 }
 
-void Data::setYaxis(double dimensioneY, double dy) {
+void Data::setYaxis(double dimensioneY, double dy)
+{
   dimY = dimensioneY;
   deltaY = dy;
   nGridPointsY = (int)((dimY / deltaY) + 2);
@@ -213,7 +211,8 @@ void Data::setYaxis(double dimensioneY, double dy) {
   }
 }
 
-void Data::setZaxis(double dimensioneZ, double dz) {
+void Data::setZaxis(double dimensioneZ, double dz)
+{
   dimZ = dimensioneZ;
   deltaZ = dz;
   nGridPointsZ = (int)((dimZ / deltaZ) + 2);
@@ -239,7 +238,8 @@ void Data::setInitialT(double tempo) { t = tempo; }
 
 Field::Field() { ex = ey = ez = e4 = bx = by = bz = b4 = 0.; }
 
-Particle::Particle() {
+Particle::Particle()
+{
   x = y = z = t = px = py = pz = pt = 0.;
 
   m = q = cell = 0;

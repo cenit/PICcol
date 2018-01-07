@@ -27,101 +27,98 @@
 #include <string>
 
 class Data {
-public:
-    Data();
-    void setInputType(char*);
-    int fillParametersFromFile(char*, std::ofstream&);
-    void fillData();
-    void setNelectrons(int);
-    void setNdim(int);
-    void setThermalV(double);
-    void setXaxis(double, double);
-    void setYaxis(double, double);
-    void setZaxis(double, double);
-    void setNsteps(int);
-    void setDeltaT(double);
-    void setEvoType(int);
-    void setParticleFillingMethod(int);
+  public:
+  Data();
+  int fillParametersFromFile(char*, std::ofstream&);
+  void setNelectrons(int);
+  void setNdim(int);
+  void setThermalV(double);
+  void setXaxis(double, double);
+  void setYaxis(double, double);
+  void setZaxis(double, double);
+  void setNsteps(int);
+  void setDeltaT(double);
+  void setEvoType(int);
+  void setParticleFillingMethod(int);
 
-    void setK(double);
-    void setA(double);
+  void setK(double);
+  void setA(double);
 
-    void aumentaT(double);
-    void resettaT();
-    void setInitialT(double);
+  void aumentaT(double);
+  void resettaT();
+  void setInitialT(double);
 
-    int inputType;
-    int n_electrons;
-    int n_ions;
-    int n_dim;
+  int inputType;
+  int n_electrons;
+  int n_ions;
+  int n_dim;
 
-    double k, A;
+  double k, A;
 
-    int evoType;
-    int analyticType;
-    int particleFillingMethod;
+  int evoType;
+  int analyticType;
+  int particleFillingMethod;
 
-    int nGridPointsX;
-    int nGridPointsY;
-    int nGridPointsZ;
-    double dimX;
-    double dimY;
-    double dimZ;
-    double deltaX;
-    double deltaY;
-    double deltaZ;
-    double thermal_vel;
-    double dt, t;
-    int nSteps;
-    std::string filename;
+  int nGridPointsX;
+  int nGridPointsY;
+  int nGridPointsZ;
+  double dimX;
+  double dimY;
+  double dimZ;
+  double deltaX;
+  double deltaY;
+  double deltaZ;
+  double thermal_vel;
+  double dt, t;
+  int nSteps;
+  std::string filename;
 };
 
 class Field {
-public:
-    Field();
-    void setEx(double);
-    void setEy(double);
-    void setEz(double);
-    void setBx(double);
-    void setBy(double);
-    void setBz(double);
+  public:
+  Field();
+  void setEx(double);
+  void setEy(double);
+  void setEz(double);
+  void setBx(double);
+  void setBy(double);
+  void setBz(double);
 
-    double ex;
-    double ey;
-    double ez;
-    double e4; //e4 allocated to keep a double4 dimension
-    double bx;
-    double by;
-    double bz;
-    double b4; //b4 allocated to keep a double4/double8 dimension, speedup even if not used
+  double ex;
+  double ey;
+  double ez;
+  double e4; //e4 allocated to keep a double4 dimension
+  double bx;
+  double by;
+  double bz;
+  double b4; //b4 allocated to keep a double4/double8 dimension, speedup even if not used
 };
 
 class Particle {
-public:
-    Particle();
-    Particle& operator*(const double);
+  public:
+  Particle();
 
-    void setParticleX(double);
-    void setParticleY(double);
-    void setParticleZ(double);
-    void setParticlePX(double);
-    void setParticlePY(double);
-    void setParticlePZ(double);
-    void setParticleQ(int);
-    void setParticleM(int);
+  void setParticleX(double);
+  void setParticleY(double);
+  void setParticleZ(double);
+  void setParticlePX(double);
+  void setParticlePY(double);
+  void setParticlePZ(double);
+  void setParticleQ(int);
+  void setParticleM(int);
 
-    double x;
-    double y;
-    double z;
-    double t; //t allocated to keep a double4 dimension
-    double px;
-    double py;
-    double pz;
-    double pt; //pt allocated to keep a double4/double8 dimension
+  double x;
+  double y;
+  double z;
+  double t; //t allocated to keep a double4 dimension
+  double px;
+  double py;
+  double pz;
+  double pt; //pt allocated to keep a double4/double8 dimension
 
-    int q;
-    int m;
-    int cell;
+  int q;
+  int m;
+  int cell;
 };
 
 #endif //__DATATYPES_H
